@@ -298,13 +298,13 @@ let table x n =
 
 (* genere_aleatoire : int -> grand_entier *)
 let rec genere_aleatoire n =
+  Random.self_init ();
   if n > 64 then begin
-    Random.self_init ();
     let head = Random.int64 Int64.max_int in
     head :: (genere_aleatoire (n - 64))
   end else
-    Random.self_init ();
-    [Random.int64 (Int64.sub (Int64.shift_left 1L n) 1L)]
+    let x = Random.int64 (Int64.sub (Int64.shift_left 1L n) 1L) in
+    [x]
 ;;
 
 
@@ -317,14 +317,14 @@ let () =
   let x3 = (genere_aleatoire 100) in
   let bits3 = decomposition x1 in
 
-  (*
+  Printf.printf "grand entier générer aléatoire sur 100bits\n";
   print_grand_entier x1;
   print_bits bits1;
   print_grand_entier x2;
   print_bits bits2;
   print_grand_entier x3;
   print_bits bits3;
-  *)
+  
 ;;
 
 
