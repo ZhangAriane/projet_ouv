@@ -1,10 +1,10 @@
-(*****************************************)
-(*                                       *)
-(*                                       *)
-(*            I.Echauffement             *)  
-(*                                       *)
-(*                                       *)
-(*****************************************)  
+(*************************************************************)
+(*                                                           *)
+(*                                                           *)
+(*                       I.Echauffement                      *)  
+(*                                                           *)
+(*                                                           *)
+(*************************************************************)  
 
 
 (*****************************************)
@@ -23,9 +23,9 @@ let insert x valeur =
   x @ [valeur]
 ;;
 
-(* remove : a' list -> a' list *)
+(* remove_head : a' list -> a' list *)
 (* enlève le premier element de la liste *)
-let remove x  = 
+let remove_head x  = 
   match x with
   |[] -> failwith "Il n'y a aucunn élément dans la liste"
   |t::s -> s
@@ -39,8 +39,9 @@ let get_head x =
   |t::_ -> t
 ;;
 
-
+(* print_grand_entier : int64 list -> unit *)
 let print_grand_entier x =
+  Printf.printf "Grand entier :\n";
   for i = 0 to List.length x - 1 do
     Printf.printf "Élément %d : %Ld\n" (i + 1) (List.nth x i)
   done
@@ -68,9 +69,10 @@ let print_bits bits =
   print_newline ()  (* Pour passer à la ligne à la fin *)
 ;;
 
-(* Exemple d'utilisation *)
+
 (*
 let () = 
+  (* Exemple d'utilisation *)
   let x = [] in
   let x = insert x 0L in
   let x = insert x (Int64.shift_left 1L 36) in
@@ -81,8 +83,8 @@ let () =
   print_newline();
   Printf.printf "get_head : %Ld\n" (get_head x);
   print_newline();
-  let x = remove x in
-  Printf.printf "après remove \n";
+  let x = remove_head x in
+  Printf.printf "après remove_head \n";
   print_grand_entier x;
   print_newline();
   print_newline();
@@ -164,26 +166,46 @@ let rec decomposition x =
 
 
 let () =
-  let bits = decomposition [38L] in
-  let bits2 = decomposition [0L; Int64.shift_left 1L 36] in
-  let bits3 = decomposition[1L;Int64.shift_left 1L 36] in
+  let bits1 = decomposition [38L] in
+  let bits2 = decomposition[Int64.shift_left 1L 36] in
+  let bits3 = decomposition [0L; Int64.shift_left 1L 36] in
+  let bits4 = decomposition[1L;Int64.shift_left 1L 36] in
+  let bits5 = decomposition[0L;1L;Int64.shift_left 1L 36] in
+  
   (* test sur decomposition*)
-  assert (bits = [false;true;true;false;false;true]);
-  assert (List.length bits2 = 101);
-  assert(List.hd bits3 = true);
-  assert(List.length bits3 = 101);
+  assert (bits1 = [false;true;true;false;false;true]);
+  assert(List.length bits2 = 37);
+  assert (List.length bits3 = 101);
+  assert(List.hd bits4 = true);
+  assert(List.length bits4 = 101);
+  assert(List.length bits5 = 165);
+  assert(List.nth bits5 64 = true);
+  assert(List.nth bits5 164 = true);
   
   (*
   print_string "Décomposition de la liste [38] : ";
-  print_bits bits;
-  
-  let len = List.length bits2 in
-  Printf.printf "longueur de [0; 2^36] : %d" len;
-  print_newline();
-  Printf.printf "longueur du decomposition [0; 2^36] : ";
-  print_bits bits2;
-  *)
+  print_bits bits1;
 
+  Printf.printf "Longueur de [2^36] : %d" (List.length bits2);
+  print_newline();
+  Printf.printf "Decomposition [2^36] : ";
+  print_bits bits2;
+
+  Printf.printf "Longueur de [0; 2^36] : %d" (List.length bits3);
+  print_newline();
+  Printf.printf "Decomposition [0; 2^36] : ";
+  print_bits bits3;
+
+  Printf.printf "Longueur de [1; 2^36] : %d" (List.length bits4);
+  print_newline();
+  Printf.printf "Decomposition [1; 2^36] : ";
+  print_bits bits4;
+
+  Printf.printf "Longueur de [0; 0; 2^36] : %d" (List.length bits5);
+  print_newline();
+  Printf.printf "Decomposition [0; 0; 2^36] : ";
+  print_bits bits5;
+  *)
 ;;
 
 
@@ -208,13 +230,13 @@ let int64_of_binary_list bits =
 ;;
 
 
-(* remove : bool list -> int -> bool list *)
+(* remove_nb : bool list -> int -> bool list *)
 (* supprime n éléments de la liste a partie le la tête  *)
-let rec remove bits n =
+let rec remove_nb bits n =
   match bits,n with
   |[],_ -> failwith "Aucun éléments dans la liste"
   |_,0 -> bits
-  |_::s,_ -> remove s (n-1)
+  |_::s,_ -> remove_nb s (n-1)
 ;;
 
 (* composition : bool list -> grand_entier *)
@@ -227,7 +249,7 @@ let rec composition bits =
       (* prend les 64 premier bits de la liste *)
       let head = completion bits 64 in
       (* supprime les 64 premier bits de la liste *)
-      let suite = remove bits 64 in
+      let suite = remove_nb bits 64 in
       (* Si les 64 premiers bits sont tous faux, renvoyer [0L] suivi de la composition du reste de la liste *)
       if List.for_all (fun x -> x = false) head then
         0L :: (composition suite)
@@ -250,14 +272,10 @@ let () =
   assert (( List.nth x3 1) = (Int64.shift_left 1L 36)); 
 
   (*
-  print_string "x1 : ";
   print_grand_entier x1;
-  print_string "x2 : ";
   print_grand_entier x2;
-  print_string "x3 : ";
   print_grand_entier x3;
   *)
-
 ;;
 
 (*****************************************)
@@ -278,6 +296,35 @@ let table x n =
 (*                                       *)
 (*****************************************)
 
+(* genere_aleatoire : int -> grand_entier *)
+let rec genere_aleatoire n =
+  if n > 64 then begin
+    Random.self_init ();
+    let head = Random.int64 Int64.max_int in
+    head :: (genere_aleatoire (n - 64))
+  end else
+    [Random.int64 (Int64.sub (Int64.shift_left 1L n) 1L)]
+;;
+
+
+
+let () = 
+  let x1 = (genere_aleatoire 100) in
+  let bits1 = decomposition x1 in
+  let x2 = (genere_aleatoire 100) in
+  let bits2 = decomposition x1 in
+  let x3 = (genere_aleatoire 100) in
+  let bits3 = decomposition x1 in
+
+  (*
+  print_grand_entier x1;
+  print_bits bits1;
+  print_grand_entier x2;
+  print_bits bits2;
+  print_grand_entier x3;
+  print_bits bits3;
+  *)
+;;
 
 
 
@@ -288,17 +335,13 @@ let table x n =
 
 
 
-
-
-
-
-(*****************************************)
-(*                                       *)
-(*                                       *)
-(*        II.Arbre de décision           *)  
-(*                                       *)
-(*                                       *)
-(*****************************************) 
+(*************************************************************)
+(*                                                           *)
+(*                                                           *)
+(*                  II.Arbre de décision                     *)  
+(*                                                           *)
+(*                                                           *)
+(*************************************************************)
 
 
 (*****************************************)
@@ -306,6 +349,11 @@ let table x n =
 (*    Q7 : Structure de données          *)
 (*                                       *)
 (*****************************************)
+
+type arbre_decision =
+  | Feuille of bool
+  | Noeud of int * arbre_decision * arbre_decision
+;;
 
 
 
@@ -333,14 +381,13 @@ let table x n =
 
 
 
-(*****************************************)
-(*                                       *)
-(*                                       *)
-(*      III.Compression de l'arbre       *)
-(*          de décision et ZDD           *)  
-(*                                       *)
-(*                                       *)
-(*****************************************) 
+(*************************************************************)
+(*                                                           *)
+(*                                                           *)
+(*      III.Compression de l'arbre de décision et ZDD        *)
+(*                                                           *)
+(*                                                           *)
+(*************************************************************)
 
 
 
@@ -382,14 +429,14 @@ let table x n =
 
 
 
-(*****************************************)
-(*                                       *)
-(*                                       *)
-(* IV.Compression avec historique stoké  *)
-(*   dans une structure arborescente     *)  
-(*                                       *)
-(*                                       *)
-(*****************************************) 
+(*************************************************************)
+(*                                                           *)
+(*                                                           *)
+(*           IV.Compression avec historique stoké            *)
+(*              dans une structure arborescente              *)  
+(*                                                           *)
+(*                                                           *)
+(*************************************************************)
 
 
 
