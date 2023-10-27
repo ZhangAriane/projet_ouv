@@ -303,6 +303,7 @@ let rec genere_aleatoire n =
     let head = Random.int64 Int64.max_int in
     head :: (genere_aleatoire (n - 64))
   end else
+    Random.self_init ();
     [Random.int64 (Int64.sub (Int64.shift_left 1L n) 1L)]
 ;;
 
