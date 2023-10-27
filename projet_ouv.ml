@@ -363,7 +363,50 @@ type arbre_decision =
 (*          Q8 : cons_arbre              *)
 (*                                       *)
 (*****************************************)
+  
+(* take : int -> 'a list -> 'a list *)
+(* Récupère les n premiers éléments d'une liste *)
+let rec take n lst =
+  match n, lst with
+  | 0, _ | _, [] -> []
+  | n, x::xs -> x :: take (n-1) xs
 
+(* drop : int -> 'a list -> 'a list *)
+(* Supprime les n premiers éléments d'une liste *)
+let rec drop n lst =
+  match n, lst with
+  | 0, _ | _, [] -> lst
+  | n, _::xs -> drop (n-1) xs
+
+
+(* cons_arbre : bool list -> int -> arbre *)
+let rec cons_arbre table profondeur = 
+  match table with
+  | [x] -> Feuille x  (* Si la table contient un seul élément, on crée une feuille *)
+  | _ -> 
+    let mid = (List.length table) / 2 in
+    let gauche = cons_arbre (take mid table) (profondeur + 1) in  (* Récupérer la première moitié *)
+    let droite = cons_arbre (drop mid table) (profondeur + 1) in  (* Récupérer la seconde moitié *)
+    Noeud (profondeur, gauche, droite)
+
+
+(* Une fonction pour afficher l'arbre de décision *)
+let rec print_arbre = function
+  | Feuille x -> Printf.printf "%b " x
+  | Noeud (v, g, d) -> 
+      Printf.printf "Noeud(%d, " v;
+      print_arbre g;
+      Printf.printf ", ";
+      print_arbre d;
+      Printf.printf ")"
+;;
+
+
+let () = 
+  let t = table (genere_aleatoire 4) 4 in  (* Prenons une table générée aléatoirement de taille 4 *)
+  let arbre = cons_arbre t 0 in
+  print_arbre arbre
+;;
 
 
 (*****************************************)
@@ -371,6 +414,13 @@ type arbre_decision =
 (*         Q9 : liste_feuilles           *)
 (*                                       *)
 (*****************************************)
+
+(* liste_feuilles : arbre -> bool list *)
+let rec liste_feuilles arbre =
+  match arbre with
+  | Feuille x -> [x]
+  | Noeud (_, g, d) -> (liste_feuilles g) @ (liste_feuilles d)
+;;
 
 
 
