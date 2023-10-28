@@ -310,21 +310,19 @@ let rec genere_aleatoire n =
 
 
 let () = 
-  let x1 = (genere_aleatoire 100) in
-  let bits1 = decomposition x1 in
-  let x2 = (genere_aleatoire 100) in
-  let bits2 = decomposition x1 in
-  let x3 = (genere_aleatoire 100) in
-  let bits3 = decomposition x1 in
-
-  Printf.printf "grand entier générer aléatoire sur 100bits\n";
-  print_grand_entier x1;
-  print_bits bits1;
-  print_grand_entier x2;
-  print_bits bits2;
-  print_grand_entier x3;
-  print_bits bits3;
-  
+  for i=0 to 1000 do
+    let x = (genere_aleatoire 100) in
+    let bits = decomposition x in
+    assert (List.length bits <= 100); 
+    (*
+    print_int (List.length bits);
+    print_newline();
+    
+    Printf.printf "grand entier générer aléatoire sur 100bits\n";
+    print_grand_entier x;
+    print_bits bits;
+    *)
+  done;
 ;;
 
 
@@ -403,9 +401,39 @@ let rec print_arbre = function
 
 
 let () = 
-  let t = table (genere_aleatoire 4) 4 in  (* Prenons une table générée aléatoirement de taille 4 *)
-  let arbre = cons_arbre t 0 in
-  print_arbre arbre
+  (*
+  let t1 = table (genere_aleatoire 4) 4 in  (* Prenons une table générée aléatoirement de taille 4 *)
+  let arbre1 = cons_arbre t1 1 in
+  print_bits t1;
+  print_arbre arbre1;
+  print_newline();
+  *)
+  let t2 = table [25899L] 16 in
+  let arbre2 = cons_arbre t2 1 in
+  (*
+  print_bits t2;
+  print_arbre arbre2;
+  *)
+
+  let arbre3 = Noeud(1,
+                  Noeud(2,
+                    Noeud(3,
+                      Noeud(4,Feuille true,Feuille true),
+                      Noeud(4,Feuille false,Feuille true)),
+                    Noeud(3,
+                      Noeud(4,Feuille false,Feuille true),
+                      Noeud(4,Feuille false,Feuille false))),
+                    
+                  Noeud(2,
+                    Noeud(3,
+                      Noeud(4,Feuille true,Feuille false),
+                      Noeud(4,Feuille true,Feuille false)),
+                    Noeud(3,
+                      Noeud(4,Feuille false,Feuille true),
+                      Noeud(4,Feuille true,Feuille false))))
+              in
+  assert(arbre2 = arbre3);
+
 ;;
 
 
@@ -425,8 +453,16 @@ let rec liste_feuilles arbre =
 
 
 
-
-
+let () = 
+  let t = table [25899L] 16 in
+  let arbre = cons_arbre t 1 in
+  let l = liste_feuilles arbre in
+  assert(t = l);
+  (*
+  print_bits t;
+  print_bits l;
+  *)
+;;
 
 
 
