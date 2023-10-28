@@ -41,11 +41,16 @@ let get_head x =
 
 (* print_grand_entier : int64 list -> unit *)
 let print_grand_entier x =
-  Printf.printf "Grand entier :\n";
+  Printf.printf "Grand entier : [";
   for i = 0 to List.length x - 1 do
-    Printf.printf "Élément %d : %Ld\n" (i + 1) (List.nth x i)
-  done
+    Printf.printf "%Ld" (List.nth x i);
+    if i != (List.length x - 1) then 
+      Printf.printf ";";
+  done;
+  Printf.printf "]\n";
 ;;
+
+
 
 let print_int64 n =
   Printf.printf "%Ld\n" n;
@@ -59,14 +64,21 @@ let print_bits bits =
     match lst with
     | [] -> ()
     | true :: s ->
-      print_string "true ";
+      if s = [] then
+        print_string "true"
+      else 
+        print_string "true; ";
       print_elements s
     | false :: s ->
-      print_string "false ";
+      if s = [] then
+        print_string "false"
+      else
+        print_string "false; ";
       print_elements s
   in
-   print_elements bits;
-  print_newline ()  (* Pour passer à la ligne à la fin *)
+  print_string "Bits : [";
+  print_elements bits; 
+  print_string "]\n";
 ;;
 
 
@@ -109,6 +121,8 @@ let rec create_false_list n =
 
 
 (* completion : bool list -> int -> bool list *)
+(* si la liste bits contient au moins n élement alors retourne *)
+(* les n 1er éléments sinon complète les bits manquantes par des false *)
 let rec completion bits n =
   match bits,n with
   |[],_ -> create_false_list n
@@ -148,6 +162,7 @@ let rec int64_to_bits x  =
 
 
 (* decomposition : grand_entier -> bool list *)
+(*  convertie un grand entier en bits *)
 let rec decomposition x =
   match x with
   |[] -> []
@@ -218,6 +233,7 @@ let () =
 (*****************************************)
 
 (* int64_of_binary_list : bool list -> int64 *)
+(* converti bits en int64 *)
 let int64_of_binary_list bits =
   (* binary_list_to_int64 : bool list -> grand_entier -> puissance *)
   let rec binary_list_to_int64 bits acc puissance =
@@ -231,7 +247,7 @@ let int64_of_binary_list bits =
 
 
 (* remove_nb : bool list -> int -> bool list *)
-(* supprime n éléments de la liste a partie le la tête  *)
+(* supprime n 1er éléments de la liste *)
 let rec remove_nb bits n =
   match bits,n with
   |[],_ -> failwith "Aucun éléments dans la liste"
@@ -240,6 +256,7 @@ let rec remove_nb bits n =
 ;;
 
 (* composition : bool list -> grand_entier *)
+(* convertie bits en grand entier *)
 let rec composition bits =
   match bits with
   | [] -> [0L]  (* Si la liste est vide, renvoie [0L] *)
@@ -285,6 +302,7 @@ let () =
 (*****************************************)
 
 (* table : grand_entier -> int -> bool list *)
+(* convertie un grand entier en bits et complète a n bits *)
 let table x n =
   let bits = decomposition x in
   completion bits n
@@ -297,6 +315,7 @@ let table x n =
 (*****************************************)
 
 (* genere_aleatoire : int -> grand_entier *)
+(* génère aléatoirement un grand entier de au moins n bits *)
 let rec genere_aleatoire n =
   Random.self_init ();
   if n > 64 then begin
@@ -351,7 +370,7 @@ let () =
 
 type arbre_decision =
   | Feuille of bool
-  | Noeud of int * arbre_decision * arbre_decision
+  | Noeud of int * arbre_decision ref * arbre_decision ref
 ;;
 
 
@@ -375,27 +394,35 @@ let rec drop n lst =
   match n, lst with
   | 0, _ | _, [] -> lst
   | n, _::xs -> drop (n-1) xs
+;;
 
+(* cons_arbre : bool list -> arbre *)
+(* construit un arbre a partir d'une table de vérité *)
+let cons_arbre table = 
+  (* aux : bool list -> int -> arbre *)
+  let rec aux table profondeur = 
+    match table with
+    | [x] ->  Feuille x  (* Si la table contient un seul élément, on crée une feuille *)
+    | _ -> 
+      let mid = (List.length table) / 2 in
+      let gauche = (aux (take mid table) (profondeur + 1)) in  (* Récupérer la première moitié *)
+      let droite = (aux (drop mid table) (profondeur + 1)) in  (* Récupérer la seconde moitié *)
+      (Noeud (profondeur,  ref gauche,  ref droite));
+  in
+  let arbre = aux table 1 in
+  arbre
+;;
 
-(* cons_arbre : bool list -> int -> arbre *)
-let rec cons_arbre table profondeur = 
-  match table with
-  | [x] -> Feuille x  (* Si la table contient un seul élément, on crée une feuille *)
-  | _ -> 
-    let mid = (List.length table) / 2 in
-    let gauche = cons_arbre (take mid table) (profondeur + 1) in  (* Récupérer la première moitié *)
-    let droite = cons_arbre (drop mid table) (profondeur + 1) in  (* Récupérer la seconde moitié *)
-    Noeud (profondeur, gauche, droite)
 
 
 (* Une fonction pour afficher l'arbre de décision *)
-let rec print_arbre = function
+let rec print_arbre = function 
   | Feuille x -> Printf.printf "%b " x
   | Noeud (v, g, d) -> 
       Printf.printf "Noeud(%d, " v;
-      print_arbre g;
+      print_arbre !g;
       Printf.printf ", ";
-      print_arbre d;
+      print_arbre !d;
       Printf.printf ")"
 ;;
 
@@ -408,32 +435,33 @@ let () =
   print_arbre arbre1;
   print_newline();
   *)
+  
   let t2 = table [25899L] 16 in
-  let arbre2 = cons_arbre t2 1 in
+  let arbre2 = cons_arbre t2  in
+  
   (*
   print_bits t2;
   print_arbre arbre2;
   *)
 
   let arbre3 = Noeud(1,
-                  Noeud(2,
-                    Noeud(3,
-                      Noeud(4,Feuille true,Feuille true),
-                      Noeud(4,Feuille false,Feuille true)),
-                    Noeud(3,
-                      Noeud(4,Feuille false,Feuille true),
-                      Noeud(4,Feuille false,Feuille false))),
+                  ref (Noeud(2,
+                    ref (Noeud(3,
+                      ref (Noeud(4, ref (Feuille true), ref (Feuille true))),
+                      ref (Noeud(4, ref (Feuille false),ref (Feuille true))))),
+                    ref (Noeud(3,
+                      ref (Noeud(4, ref (Feuille false), ref (Feuille true))),
+                      ref (Noeud(4, ref (Feuille false), ref (Feuille false))))))),
                     
-                  Noeud(2,
-                    Noeud(3,
-                      Noeud(4,Feuille true,Feuille false),
-                      Noeud(4,Feuille true,Feuille false)),
-                    Noeud(3,
-                      Noeud(4,Feuille false,Feuille true),
-                      Noeud(4,Feuille true,Feuille false))))
+                  ref (Noeud(2,
+                    ref (Noeud(3,
+                      ref (Noeud(4,ref (Feuille true),ref (Feuille false))),
+                      ref (Noeud(4,ref (Feuille true),ref (Feuille false))))),
+                    ref (Noeud(3,
+                      ref (Noeud(4,ref( Feuille false),ref (Feuille true))),
+                      ref (Noeud(4,ref (Feuille true),ref (Feuille false))))))))
               in
   assert(arbre2 = arbre3);
-
 ;;
 
 
@@ -444,10 +472,11 @@ let () =
 (*****************************************)
 
 (* liste_feuilles : arbre -> bool list *)
+(* convertie un arbre en table de vérité *)
 let rec liste_feuilles arbre =
   match arbre with
   | Feuille x -> [x]
-  | Noeud (_, g, d) -> (liste_feuilles g) @ (liste_feuilles d)
+  | Noeud (_, g, d) -> (liste_feuilles !g) @ (liste_feuilles !d)
 ;;
 
 
@@ -455,7 +484,7 @@ let rec liste_feuilles arbre =
 
 let () = 
   let t = table [25899L] 16 in
-  let arbre = cons_arbre t 1 in
+  let arbre = cons_arbre t  in
   let l = liste_feuilles arbre in
   assert(t = l);
   (*
@@ -498,10 +527,45 @@ let () =
 (*                                       *)
 (*****************************************)
 
+open Printf
 
+(* generate_dot_arbre : out_channel -> arbre_decision -> int -> unit*)
+(* génère du code dot dans un fichier *)
+(* chaque noeud est numéroté Noeud1, Noeud2... dans le fichier dot *)
+(* pour faire la différence entre deux noeud contenant la même valeur *)
+(* c-à-d même profondeur ou bool dans les feuilles *)
+let rec generate_dot_arbre file arbre noeud =
+  match arbre with
+  | Feuille b ->
+      fprintf file "  Noeud%d [label=\"%b\"];\n" noeud b
+  | Noeud (profondeur, gauche, droite) ->
+      fprintf file "  Noeud%d [label=\"%d\"];\n" noeud profondeur;
+      generate_dot_arbre file !gauche (noeud*2);
+      generate_dot_arbre file !droite (noeud*2+1);
+      fprintf file "  Noeud%d -> Noeud%d [style=dotted];\n" (noeud) (noeud*2);
+      fprintf file "  Noeud%d -> Noeud%d [style=solid];\n" (noeud) (noeud*2+1)
+;;
 
+(* dot : string -> arbre_decision *)
+let dot filename arbre =
+  let file = open_out filename in
+  fprintf file "digraph ArbreDecision {\n";
+  generate_dot_arbre file arbre 1;
+  fprintf file "}\n";
+  close_out file
+;;
 
+(*****************************************)
+(*                                       *)
+(*                 Q13                   *)
+(*                                       *)
+(*****************************************)
 
+let () =
+  let t = table [25899L] 16 in
+  let arbre = cons_arbre t  in
+  dot "arbre_decision.dot" arbre
+;;
 
 
 
