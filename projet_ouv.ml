@@ -505,22 +505,113 @@ let () =
 (*                                                           *)
 (*************************************************************)
 
-
-
-
-
 (*****************************************)
 (*                                       *)
 (*        Q10 : ListeDejaVus             *)
 (*                                       *)
 (*****************************************)
+  
+(* ListeDejaVus : (grand_entier * arbre_decision ref) list *)
+(* liste de couple (grand_entier, arbre_decision) *)
+(* grand_entier : liste de booléen *)
+(* arbre_decision : arbre de décision *)
+
+type liste_deja_vus = (grand_entier * arbre_decision ref) list;;
+
+(* grand_entier_of_liste_feuilles : bool list -> grand_entier *)
+(* convertie une liste de feuilles en grand entier *)
+let grand_entier_of_liste_feuilles liste_feuilles =
+  composition liste_feuilles
+;;
+
+(* add : liste_deja_vus -> grand_entier -> arbre_decision ref -> liste_deja_vus *)
+(* ajoute en tête de ListeDejaVus un couple constitué du grand entier n et d’un pointeur vers N *)
+
+let add liste_deja_vus n arbre_decision =
+  (n, arbre_decision) :: liste_deja_vus
+;;
+
+(* find_and_replace : liste_deja_vus -> grand_entier -> arbre_decision ref -> unit *)
+(* Si n est la première composante d’un couple stocké dans ListeDejaVus, alors remplacer le pointeur vers N (depuis son parent) par un pointeur vers la seconde composante du couple en question *)
+let rec find_and_replace liste_deja_vus n arbre_decision =
+  match liste_deja_vus with
+  | [] -> ()
+  | (n', arbre_decision') :: s ->
+    if n = n' then
+      arbre_decision := !arbre_decision'
+    else
+      find_and_replace s n arbre_decision
+;;
+
+
+
+
+
+
+
+
 
 (*****************************************)
 (*                                       *)
 (*      Q11 : CompressionParListe        *)
 (*                                       *)
 (*****************************************)
+(* compression_par_liste : arbre_decision -> liste_deja_vus ref -> unit *)
+(* Encoder l’algorithme précédant dans une fonction nommée CompressionParListe
+    prenant G et une liste vide ListeDejaVus comme arguments*)
+    let rec compression_par_liste arbre_decision liste_deja_vus_ref =
+      match arbre_decision with
+      | Feuille _ -> ()
+      | Noeud (_,gauche, droite) ->
+        (*— Calculer la liste_feuilles associées à N (le nombre d’éléments qu’elle contient est une puissance de 2).*)
+        let liste_feuilles = liste_feuilles arbre_decision in
+    
+        (*— Si la deuxième moitié de la liste ne contient que des valeurs false alors remplacer le pointeur vers N (depuis son parent) vers un pointeur vers l’enfant gauche de N*)
+        if List.for_all (fun x -> x = false) (drop ((List.length liste_feuilles) / 2) liste_feuilles) then
+          droite := !gauche
+        else
+          (*— Sinon, calculer le grand entier n correspondant à liste_feuilles du sous-arbre enraciné en N ;*)
+          let n = grand_entier_of_liste_feuilles liste_feuilles in
+    
+          (*— Si n est la première composante d’un couple stocké dans ListeDejaVus, alors remplacer le pointeur vers N (depuis son parent) par un pointeur vers la seconde composante du couple en question ;*)
+          find_and_replace !liste_deja_vus_ref n droite;
+    
+          (*— Sinon ajouter en tête de ListeDejaVus un couple constitué du grand entier n et d’un pointeur vers N*)
+          liste_deja_vus_ref := add !liste_deja_vus_ref n droite;
+    
+        (*— Appeler récursivement CompressionParListe sur les enfants de N.*)
+        compression_par_liste !gauche liste_deja_vus_ref;
+        compression_par_liste !droite liste_deja_vus_ref
+    ;;
+    
+    
+    
 
+
+  let () =
+  let t = table [25899L] 16 in
+  let arbre = cons_arbre t in
+  print_arbre arbre;
+  let liste_deja_vus = ref [] in
+  compression_par_liste arbre liste_deja_vus;
+  print_newline();
+  print_newline();
+  print_arbre arbre;
+  
+
+
+
+(*****************************************)
+(*                                       *)
+(*                Q14                    *)
+(*                                       *)
+(*****************************************)
+
+(* compression_par_liste : arbre_decision -> liste_deja_vus -> unit *)
+(* Encoder l’algorithme précédant dans une fonction nommée CompressionParListe
+  prenant G et une liste vide ListeDejaVus comme arguments*)
+
+  
 (*****************************************)
 (*                                       *)
 (*              Q12 : dot                *)
