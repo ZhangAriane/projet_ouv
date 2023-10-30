@@ -22,7 +22,7 @@ digraph ArbreDecision {
   Noeud10 -> Noeud21 [style=solid, shape="none"];
   Noeud11 [label="4", shape="none"];
   Noeud22 [label="false", shape="none"];
-  Noeud23 [label="false", shape="none"];
+  Noeud23 [label="true", shape="none"];
   Noeud11 -> Noeud22 [style=dotted, shape="none"];
   Noeud11 -> Noeud23 [style=solid, shape="none"];
   Noeud5 -> Noeud10 [style=dotted, shape="none"];
@@ -33,12 +33,12 @@ digraph ArbreDecision {
   Noeud6 [label="3", shape="none"];
   Noeud12 [label="4", shape="none"];
   Noeud24 [label="true", shape="none"];
-  Noeud25 [label="false", shape="none"];
+  Noeud25 [label="true", shape="none"];
   Noeud12 -> Noeud24 [style=dotted, shape="none"];
   Noeud12 -> Noeud25 [style=solid, shape="none"];
   Noeud13 [label="4", shape="none"];
   Noeud26 [label="true", shape="none"];
-  Noeud27 [label="false", shape="none"];
+  Noeud27 [label="true", shape="none"];
   Noeud13 -> Noeud26 [style=dotted, shape="none"];
   Noeud13 -> Noeud27 [style=solid, shape="none"];
   Noeud6 -> Noeud12 [style=dotted, shape="none"];
@@ -51,7 +51,7 @@ digraph ArbreDecision {
   Noeud14 -> Noeud29 [style=solid, shape="none"];
   Noeud15 [label="4", shape="none"];
   Noeud30 [label="true", shape="none"];
-  Noeud31 [label="false", shape="none"];
+  Noeud31 [label="true", shape="none"];
   Noeud15 -> Noeud30 [style=dotted, shape="none"];
   Noeud15 -> Noeud31 [style=solid, shape="none"];
   Noeud7 -> Noeud14 [style=dotted, shape="none"];

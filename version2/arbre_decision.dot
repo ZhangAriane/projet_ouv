@@ -1,5 +1,5 @@
 digraph ArbreDecision {
-  Noeud0 [label="1", shape="none"];
+  Noeud1 [label="1", shape="none"];
   Noeud2 [label="2", shape="none"];
   Noeud4 [label="3", shape="none"];
   Noeud8 [label="4", shape="none"];
@@ -58,6 +58,6 @@ digraph ArbreDecision {
   Noeud7 -> Noeud15 [style=solid, shape="none"];
   Noeud3 -> Noeud6 [style=dotted, shape="none"];
   Noeud3 -> Noeud7 [style=solid, shape="none"];
-  Noeud0 -> Noeud2 [style=dotted, shape="none"];
-  Noeud0 -> Noeud3 [style=solid, shape="none"];
+  Noeud1 -> Noeud2 [style=dotted, shape="none"];
+  Noeud1 -> Noeud3 [style=solid, shape="none"];
 }

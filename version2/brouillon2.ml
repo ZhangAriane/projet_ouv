@@ -370,7 +370,7 @@ let () =
 
 type arbre_decision =
   | Feuille of bool
-  | Noeud of int * arbre_decision ref * arbre_decision ref
+  | Noeud of int * arbre_decision * arbre_decision 
 ;;
 
 
@@ -396,22 +396,49 @@ let rec drop n lst =
   | n, _::xs -> drop (n-1) xs
 ;;
 
+(* set_fils_gauche_arbre : arbre_decision -> arbre_decision -> arbre_decision *)
+(* si l'arbre possède un fils gauche alors renvoie l'arbre modifier sinon sinon l'arbre initial*)
+let set_fils_gauche_arbre arbre nouveau_fils_gauche = 
+  match arbre with
+  | Noeud(n, gauche, droite) ->
+    (*retourne l'arbre modifier*)
+      Noeud(n,nouveau_fils_gauche,droite)
+  | _ -> arbre
+;;
+
+(* set_fils_droite_arbre : arbre_decision -> arbre_decision -> arbre_decision *)
+(* si l'arbre possède un fils droite alors renvoie l'arbre modifier sinon l'arbre initial *)
+let set_fils_droite_arbre arbre nouveau_fils_droite = 
+  match arbre with
+  | Noeud(n, gauche, droite) ->
+    (*retourne l'arbre modifier*)
+     Noeud(n,gauche,nouveau_fils_droite)
+  | _ -> arbre
+
+
+
 (* cons_arbre : bool list -> arbre *)
-(* construit un arbre a partir d'une table de vérité *)
+(* construit d'un arbre a partir d'une table de vérité *)
 let cons_arbre table = 
   (* aux : bool list -> int -> arbre *)
   let rec aux table profondeur = 
     match table with
-    | [x] ->  Feuille x  (* Si la table contient un seul élément, on crée une feuille *)
+    | [] -> failwith "La table de vérité est vide.";
+    | [x] ->  Feuille x  (* Si la table contient un seul élément, on crée une feuille *) 
     | _ -> 
+      (* construction en préfixe : créer d'abord la racine puis enfant gauche et enfant droite *)
+      let noeud = Noeud(profondeur, (Feuille false),(Feuille false)) in
       let mid = (List.length table) / 2 in
       let gauche = (aux (take mid table) (profondeur + 1)) in  (* Récupérer la première moitié *)
       let droite = (aux (drop mid table) (profondeur + 1)) in  (* Récupérer la seconde moitié *)
-      (Noeud (profondeur,  ref gauche,  ref droite));
+      let noeud = set_fils_gauche_arbre noeud  gauche in
+      let noeud = set_fils_droite_arbre noeud  droite in
+      noeud
   in
   let arbre = aux table 1 in
   arbre
 ;;
+
 
 
 
@@ -420,9 +447,9 @@ let rec print_arbre = function
   | Feuille x -> Printf.printf "%b " x
   | Noeud (v, g, d) -> 
       Printf.printf "Noeud(%d, " v;
-      print_arbre !g;
+      print_arbre g;
       Printf.printf ", ";
-      print_arbre !d;
+      print_arbre d;
       Printf.printf ")"
 ;;
 
@@ -445,23 +472,24 @@ let () =
   *)
 
   let arbre3 = Noeud(1,
-                  ref (Noeud(2,
-                    ref (Noeud(3,
-                      ref (Noeud(4, ref (Feuille true), ref (Feuille true))),
-                      ref (Noeud(4, ref (Feuille false),ref (Feuille true))))),
-                    ref (Noeud(3,
-                      ref (Noeud(4, ref (Feuille false), ref (Feuille true))),
-                      ref (Noeud(4, ref (Feuille false), ref (Feuille false))))))),
+                   (Noeud(2,
+                     (Noeud(3,
+                       (Noeud(4,  (Feuille true),  (Feuille true))),
+                       (Noeud(4,  (Feuille false), (Feuille true))))),
+                     (Noeud(3,
+                       (Noeud(4,  (Feuille false),  (Feuille true))),
+                       (Noeud(4,  (Feuille false),  (Feuille false))))))),
                     
-                  ref (Noeud(2,
-                    ref (Noeud(3,
-                      ref (Noeud(4,ref (Feuille true),ref (Feuille false))),
-                      ref (Noeud(4,ref (Feuille true),ref (Feuille false))))),
-                    ref (Noeud(3,
-                      ref (Noeud(4,ref( Feuille false),ref (Feuille true))),
-                      ref (Noeud(4,ref (Feuille true),ref (Feuille false))))))))
+                   (Noeud(2,
+                     (Noeud(3,
+                       (Noeud(4, (Feuille true), (Feuille false))),
+                       (Noeud(4, (Feuille true), (Feuille false))))),
+                     (Noeud(3,
+                       (Noeud(4,( Feuille false), (Feuille true))),
+                       (Noeud(4, (Feuille true), (Feuille false))))))))
               in
   assert(arbre2 = arbre3);
+  
 ;;
 
 
@@ -476,7 +504,7 @@ let () =
 let rec liste_feuilles arbre =
   match arbre with
   | Feuille x -> [x]
-  | Noeud (_, g, d) -> (liste_feuilles !g) @ (liste_feuilles !d)
+  | Noeud (_, g, d) -> (liste_feuilles g) @ (liste_feuilles d)
 ;;
 
 
@@ -495,8 +523,6 @@ let () =
 
 
 
-
-
 (*************************************************************)
 (*                                                           *)
 (*                                                           *)
@@ -505,156 +531,20 @@ let () =
 (*                                                           *)
 (*************************************************************)
 
-(*****************************************)
-(*                                       *)
-(*        Q10 : ListeDejaVus             *)
-(*                                       *)
-(*****************************************)
-  
-(* ListeDejaVus : (grand_entier * arbre_decision ref) list *)
-(* liste de couple (grand_entier, arbre_decision) *)
-(* grand_entier : liste de booléen *)
-(* arbre_decision : arbre de décision *)
-
-type liste_deja_vus = (grand_entier * arbre_decision ref) list;;
-
-(* grand_entier_of_liste_feuilles : bool list -> grand_entier *)
-(* convertie une liste de feuilles en grand entier *)
-let grand_entier_of_liste_feuilles liste_feuilles =
-  composition liste_feuilles
-;;
-
-(* add : liste_deja_vus -> grand_entier -> arbre_decision ref -> liste_deja_vus *)
-(* ajoute en tête de ListeDejaVus un couple constitué du grand entier n et d’un pointeur vers N *)
-
-let add liste_deja_vus n arbre_decision =
-  (n, arbre_decision) :: liste_deja_vus
-;;
-
-(* find_and_replace : liste_deja_vus -> grand_entier -> arbre_decision ref -> unit *)
-(* Si n est la première composante d’un couple stocké dans ListeDejaVus, alors remplacer le pointeur vers N (depuis son parent) par un pointeur vers la seconde composante du couple en question *)
-let rec find_and_replace liste_deja_vus n arbre_decision =
-  match liste_deja_vus with
-  | [] -> ()
-  | (n', arbre_decision') :: s ->
-    if n = n' then
-      arbre_decision := !arbre_decision'
-    else
-      find_and_replace s n arbre_decision
-;;
 
 
-
-
-
-
-
-
-
-(*****************************************)
-(*                                       *)
-(*      Q11 : CompressionParListe        *)
-(*                                       *)
-(*****************************************)
-(* compression_par_liste : arbre_decision -> liste_deja_vus ref -> unit *)
-(* Encoder l’algorithme précédant dans une fonction nommée CompressionParListe
-    prenant G et une liste vide ListeDejaVus comme arguments*)
-    let rec compression_par_liste arbre_decision liste_deja_vus_ref =
-      match arbre_decision with
-      | Feuille _ -> ()
-      | Noeud (_,gauche, droite) ->
-        (*— Calculer la liste_feuilles associées à N (le nombre d’éléments qu’elle contient est une puissance de 2).*)
-        let liste_feuilles = liste_feuilles arbre_decision in
-    
-        (*— Si la deuxième moitié de la liste ne contient que des valeurs false alors remplacer le pointeur vers N (depuis son parent) vers un pointeur vers l’enfant gauche de N*)
-        if List.for_all (fun x -> x = false) (drop ((List.length liste_feuilles) / 2) liste_feuilles) then
-          droite := !gauche
-        else
-          (*— Sinon, calculer le grand entier n correspondant à liste_feuilles du sous-arbre enraciné en N ;*)
-          let n = grand_entier_of_liste_feuilles liste_feuilles in
-    
-          (*— Si n est la première composante d’un couple stocké dans ListeDejaVus, alors remplacer le pointeur vers N (depuis son parent) par un pointeur vers la seconde composante du couple en question ;*)
-          find_and_replace !liste_deja_vus_ref n droite;
-    
-          (*— Sinon ajouter en tête de ListeDejaVus un couple constitué du grand entier n et d’un pointeur vers N*)
-          liste_deja_vus_ref := add !liste_deja_vus_ref n droite;
-    
-        (*— Appeler récursivement CompressionParListe sur les enfants de N.*)
-        compression_par_liste !gauche liste_deja_vus_ref;
-        compression_par_liste !droite liste_deja_vus_ref
-    ;;
-    
-    
-    
-
-
-  let () =
-  let t = table [25899L] 16 in
-  let arbre = cons_arbre t in
-  (*print_arbre arbre;*)
-  let liste_deja_vus = ref [] in
-  compression_par_liste arbre liste_deja_vus;
-  (*
-  print_newline();
-  print_newline();
-  print_arbre arbre;
-  *)
-  ;;
-  
-
-
-
-(*****************************************)
-(*                                       *)
-(*                Q14                    *)
-(*                                       *)
-(*****************************************)
-
-(* compression_par_liste : arbre_decision -> liste_deja_vus -> unit *)
-(* Encoder l’algorithme précédant dans une fonction nommée CompressionParListe
-  prenant G et une liste vide ListeDejaVus comme arguments*)
-
-  
 (*****************************************)
 (*                                       *)
 (*              Q12 : dot                *)
 (*                                       *)
 (*****************************************)
 
-open Printf
-
-(* generate_dot_arbre : out_channel -> arbre_decision -> int -> unit*)
-(* génère du code dot dans un fichier *)
-(* chaque noeud est numéroté Noeud1, Noeud2... dans le fichier dot *)
-(* pour faire la différence entre deux noeud contenant la même valeur *)
-(* c-à-d même profondeur ou bool dans les feuilles *)
-(*let rec generate_dot_arbre file arbre noeud =
-  match arbre with
-  | Feuille b ->
-      fprintf file "  Noeud%d [label=\"%b\"];\n" noeud b
-  | Noeud (profondeur, gauche, droite) ->
-      fprintf file "  Noeud%d [label=\"%d\"];\n" noeud profondeur;
-      generate_dot_arbre file !gauche (noeud*2);
-      generate_dot_arbre file !droite (noeud*2+1);
-      fprintf file "  Noeud%d -> Noeud%d [style=dotted];\n" (noeud) (noeud*2);
-      fprintf file "  Noeud%d -> Noeud%d [style=solid];\n" (noeud) (noeud*2+1)
-;;
-
-(* dot : string -> arbre_decision *)
-let dot filename arbre =
-  let file = open_out filename in
-  fprintf file "digraph ArbreDecision {\n";
-  generate_dot_arbre file arbre 1;
-  fprintf file "}\n";
-  close_out file
-;;*)
-
 
 let rec calcul_nb_noeud arbre =
   match arbre with
   |Feuille x -> 1
   |Noeud(x,gauche,droite)-> 
-    1 + calcul_nb_noeud(!gauche) + calcul_nb_noeud(!droite)
+    1 + calcul_nb_noeud(gauche) + calcul_nb_noeud(droite)
 ;;
 
 let arrondi_puissance2_superieur n =
@@ -665,64 +555,129 @@ let arrondi_puissance2_superieur n =
   !puissance2
 ;;
 
+(* add_tableau : (arbre_decision * int) array -> arbre_decision -> int -> unit *)
+(* t est un array composé de de couple de arbre et un id *)
+(* index est l'index du tableau ou l'on souhaite mettre a jour *)
+let mise_a_jour_tableau t nouveau_arbre index =
+  (* Cherche si nouveau_arbre est le 1er composant de l'un des couples de l'array et prend son index *)
+  (* c-à-d la valeurs et pointeur deux arbres sont égale *)
+  let i = Array.fold_left (fun acc (p, id) -> if p == nouveau_arbre then Some id else acc) None t in
 
+  match i with
+  |None-> 
+    (* si le nouveau arbre n'existe pas dans l'array alors met a jour nouveau couple avec nouveau_arbre et id nouveau*)
+    Array.set t index ( nouveau_arbre,index);
+    Printf.printf "existe pas  : indice : %d -> valeur : %d\n" index index;
+  |Some(x) -> 
+    let pointeur,id = t.(x) in
+    (* si le nouveau arbre existe pas dans l'array alors met a jour le couple avec l'ancien id*)
+    Array.set t index ( pointeur,id);
+    Printf.printf "existe déjà : indice : %d -> valeur : %d\n" index id;
+;;
+
+
+(* tableau : arbre_decision -> (arbre_decision * int) array *)
+(* un tableau qui contient des couples (pointeur vers un arbre, id) de tout les noeuds de l'arbre*)
 let tableau arbre =
-  let len = (arrondi_puissance2_superieur (calcul_nb_noeud arbre) ) in
-  let t = Array.make len (ref arbre, 0) in
+  (* un tableau initialisé a la taille puissance de 2 supérieur au nombre de noeud de l'arbre (noeud interne et feuille)*)
+  (* c-à-d un arbre de 5 noeud -> 8, un arbre de 7 -> 8, un arbre de 31 -> 32 *)
+  let len = arrondi_puissance2_superieur (calcul_nb_noeud arbre) in
+  let tab = Array.make len ( arbre, 0) in
+  (* la valeur de index 1 de array correspond a la racine *)
+  tab.(1) <- (arbre, 1);
 
-  let rec aux arbre index  = 
+  let rec aux arbre index t = 
     match arbre with
     | Feuille b ->
         ()
-    | Noeud (profondeur, gauche, droite) ->
-        aux !gauche (index * 2) ;
-        aux !droite (index * 2 + 1) ;
-
-        for i = 0 to len - 1 do
-          let (p, n) = t.(i) in
-          if p == gauche then
-            Array.set t (index*2) (p,n)
-          else 
-            Array.set t (index*2) (gauche,index*2) 
-        done;
-        for i = 0 to len - 1 do
-          let (p, n) = t.(i) in
-          if p == droite then
-            Array.set t (index*2+1) (p,n)
-          else
-            Array.set t (index*2+1) (droite,index*2+1)
-        done;
+    | Noeud (profondeur, gauche, droite) ->  
+        (* les index correspond au numéro des noeuds, c-à-d *)
+        (* index =1 -> racine, index = 2 -> fils gauche de la racine, index = 3 fils droite de la racine*)
+        (* formule numéro du fils gauche : index+2*)
+        (* formule numéro du fils gauche : index+2+1*)
+        mise_a_jour_tableau t ( gauche) (index*2); 
+        mise_a_jour_tableau t ( droite) (index*2+1);
+        aux gauche (index * 2) t;
+        aux droite (index * 2 + 1) t;
   in
-  aux arbre 1;
-  t
+  aux arbre 1 tab;
+  tab
 ;;
 
+(* generate_dot_arbre : out_channel -> arbre_decision -> int -> (arbre_decision * int) array -> unit *)
+(* génére l'arbre en langage dot dans le fichier file *)
 let rec generate_dot_arbre file arbre index tableau =
   match arbre with
   | Feuille b ->
-    let pointeur, n =  tableau.(index) in
-      fprintf file "  Noeud%d [label=\"%b\", shape=\"none\"];\n" n b
+      let pointeur, n =  tableau.(index) in
+      Printf.fprintf file "  Noeud%d [label=\"%b\", shape=\"none\"];\n" n b
   | Noeud (profondeur, gauche, droite) ->
       let pointeur, n =  tableau.(index) in
-      fprintf file "  Noeud%d [label=\"%d\", shape=\"none\"];\n" n profondeur;
-      generate_dot_arbre file !gauche (index*2) tableau;
-      generate_dot_arbre file !droite (index*2+1) tableau;
+      Printf.fprintf file "  Noeud%d [label=\"%d\", shape=\"none\"];\n" n profondeur;
+      generate_dot_arbre file gauche (index*2) tableau;
+      generate_dot_arbre file droite (index*2+1) tableau;
 
       let pointeur_gauche, n_gauche = tableau.(index*2) in
       let pointeur_droite, n_droite = tableau.(index*2+1) in
-      fprintf file "  Noeud%d -> Noeud%d [style=dotted, shape=\"none\"];\n" n n_gauche;
-      fprintf file "  Noeud%d -> Noeud%d [style=solid, shape=\"none\"];\n" n n_droite
+      Printf.fprintf file "  Noeud%d -> Noeud%d [style=dotted, shape=\"none\"];\n" n n_gauche;
+      Printf.fprintf file "  Noeud%d -> Noeud%d [style=solid, shape=\"none\"];\n" n n_droite
 ;;
+
+
+
+(* Supprime les lignes redondantes d'un fichier *)
+let remove_duplicate_lines input_file output_file =
+  (* Ouvrez le fichier d'entrée en lecture *)
+  let ic = open_in input_file in
+
+  (* Ouvrez le fichier de sortie en écriture *)
+  let oc = open_out output_file in
+
+  (* Initialisez un ensemble pour garder une trace des lignes déjà vues *)
+  let seen_lines = Hashtbl.create 1000 in
+
+  try
+    while true do
+      let line = input_line ic in
+
+      (* Vérifiez si la ligne a déjà été vue *)
+      if not (Hashtbl.mem seen_lines line) then begin
+        (* Écrivez la ligne dans le fichier de sortie *)
+        output_string oc (line ^ "\n");
+
+        (* Ajoutez la ligne à l'ensemble des lignes vues *)
+        Hashtbl.add seen_lines line true;
+      end
+    done
+  with
+  | End_of_file ->
+    close_in ic;
+    close_out oc
+  | Sys_error err ->
+    Printf.eprintf "Erreur : %s\n" err
+;;
+
 
 (* dot : string -> arbre_decision *)
 let dot filename arbre =
-  let file = open_out filename in
-  fprintf file "digraph ArbreDecision {\n";
+  let file_intermediaire = "file_intermediaire.dot" in
+  let file = open_out file_intermediaire in
+  Printf.fprintf file "digraph ArbreDecision {\n";
   let t = tableau arbre in
   Printf.printf "len tableau : %d\n" (Array.length t);
-  generate_dot_arbre file arbre 1 t;
-  fprintf file "}\n";
-  close_out file
+
+  for i=0 to (Array.length t -1) do
+    let p, n = t.(i) in
+    Printf.printf "%d "n;
+  done;
+  Printf.printf "\n\n";
+
+  generate_dot_arbre file arbre 1 t ;
+  Printf.fprintf file "}\n";
+  close_out file;
+
+  (* enlève les lignes redondant *)
+  remove_duplicate_lines file_intermediaire filename;
 ;;
 
 (*****************************************)
@@ -731,14 +686,9 @@ let dot filename arbre =
 (*                                       *)
 (*****************************************)
 
-(*let () =
-  let t = table [25899L] 16 in
-  let arbre = cons_arbre t  in
-  dot "arbre_decision.dot" arbre
-;;*)
-
 
 let () =
+  Printf.printf "test arbre\n ";
   let t = table [25899L] 16 in
   let arbre = cons_arbre t  in 
   dot "arbre_decision.dot" arbre;
@@ -746,76 +696,26 @@ let () =
   Printf.printf "noeud arbre : %d\n" (n);
   Printf.printf "noeud arbre : %d\n" (arrondi_puissance2_superieur n);
 
-   compression_par_liste arbre (ref []);
-  let n = calcul_nb_noeud arbre in
-  Printf.printf "noeud arbre : %d\n" (n);
-  Printf.printf "noeud arbre : %d\n" (arrondi_puissance2_superieur n);
-
-  let t = tableau arbre in
+  (*let t = tableau arbre in
   for i=0 to (Array.length t -1) do
     let p, n = t.(i) in
-    Printf.printf "index : %d \n" i;
-    Printf.printf "[%d]\n\n " n;
+    Printf.printf "%d "n;
   done;
-
+  Printf.printf "\n\n";*)
 ;;
 
 
+let () =
 
+  let n1 = Noeud(2, (Feuille false) ,  (Feuille true)) in
+  let n2 = Noeud(2, (Feuille false) ,  (Feuille true)) in
+  let arbre = Noeud (1,  n1,  n1) in
+  dot "test.dot" arbre;
 
+  Printf.printf "n1=n2 : %b\n" (n1=n1) ;
+  Printf.printf "n1=n2 : %b\n" (n1=n2) ;
+  Printf.printf "n1==n2 : %b\n" (n1==n1) ;
+  Printf.printf "n1==n2 : %b\n" (n1==n2) ;
 
-let () = 
-  let t = table [25899L] 16 in
-  let arbre = cons_arbre t  in
-  compression_par_liste arbre (ref []) ;
-  dot "zdd.dot" arbre;
-
-
-  let t = tableau arbre in
-  for i=0 to (Array.length t -1) do
-    let p, n = t.(i) in
-    Printf.printf "index : %d \n" i;
-    Printf.printf "[%d]\n\n " n;
-  done;
 ;;
 
-
-
-
-
-(*************************************************************)
-(*                                                           *)
-(*                                                           *)
-(*           IV.Compression avec historique stoké            *)
-(*              dans une structure arborescente              *)  
-(*                                                           *)
-(*                                                           *)
-(*************************************************************)
-
-
-
-
-
-(*****************************************)
-(*                                       *)
-(*        Q15 : ArbreDejaVus             *)
-(*                                       *)
-(*****************************************)
-
-(*****************************************)
-(*                                       *)
-(*                Q16                    *)
-(*                                       *)
-(*****************************************)
-
-(*****************************************)
-(*                                       *)
-(*       Q17 : CompressionParArbre       *)
-(*                                       *)
-(*****************************************)
-
-(*****************************************)
-(*                                       *)
-(*                Q18                    *)
-(*                                       *)
-(*****************************************)
