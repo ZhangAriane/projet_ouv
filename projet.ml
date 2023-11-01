@@ -450,13 +450,13 @@ let cons_arbre table =
 
 
 (* Une fonction pour afficher l'arbre de décision *)
-let rec print_arbre = function 
+let rec print_arbre_decision = function 
   | Feuille x -> Printf.printf "%b " x
   | Noeud (v, g, d) -> 
       Printf.printf "Noeud(%d, " v;
-      print_arbre g;
+      print_arbre_decision g;
       Printf.printf ", ";
-      print_arbre d;
+      print_arbre_decision d;
       Printf.printf ")"
 ;;
 
@@ -466,7 +466,7 @@ let () =
   let t1 = table (genere_aleatoire 4) 4 in  (* Prenons une table générée aléatoirement de taille 4 *)
   let arbre1 = cons_arbre t1 1 in
   print_bits t1;
-  print_arbre arbre1;
+  print_arbre_decision arbre1;
   print_newline();
   *)
   
@@ -475,7 +475,7 @@ let () =
   
   (*
   print_bits t2;
-  print_arbre arbre2;
+  print_arbre_decision arbre2;
   *)
 
   let arbre3 = Noeud(1,
@@ -579,7 +579,7 @@ let rec get_pointeur_liste_deja_vue liste_deja_vue x =
 
 
 
-(* regle_M : arbre_decision -> liste_deja_vus ref -> unit *)
+(* regle_M : arbre_decision -> (int64 list * arbre_decision) list ref -> arbre_decision *)
 let rec regle_M noeud liste_deja_vue =
   match noeud with 
   | Feuille x -> noeud
@@ -591,16 +591,18 @@ let rec regle_M noeud liste_deja_vue =
       let n_gauche = composition (liste_feuilles nouveau_gauche) in
       let n_droite = composition (liste_feuilles nouveau_droite) in
       
+      (*
       Printf.printf "Noeud : %d\n" x;
       print_grand_entier n_gauche;
       print_grand_entier n_droite;
-      
+      *)
+
       let b1 = contient !liste_deja_vue n_gauche in
       let b2 = contient !liste_deja_vue n_droite in
       
       if n_gauche = n_droite then
         if b1 then begin
-          Printf.printf "gauche=droite, gauche et droite dans la liste\n\n";
+          (*Printf.printf "gauche=droite, gauche et droite dans la liste\n\n";*)
           let nouveau_pointeur = get_pointeur_liste_deja_vue !liste_deja_vue n_gauche in
           if nouveau_gauche = nouveau_pointeur then
             Noeud(x, nouveau_pointeur, nouveau_pointeur)
@@ -608,13 +610,13 @@ let rec regle_M noeud liste_deja_vue =
             Noeud(x, nouveau_gauche, nouveau_gauche)
         end
         else begin
-          Printf.printf "gauche=droite, gauche et droite pas dans la liste\n\n";
+          (*Printf.printf "gauche=droite, gauche et droite pas dans la liste\n\n";*)
           liste_deja_vue := (n_gauche, nouveau_gauche)::!liste_deja_vue;
           Noeud(x, nouveau_gauche, nouveau_gauche)
         end
       else begin
         if b1 && b2 then begin
-          Printf.printf "gauche!=droite, gauche et droite dans la liste\n\n";
+          (*Printf.printf "gauche!=droite, gauche et droite dans la liste\n\n";*)
           let nouveau_pointeur_gauche = get_pointeur_liste_deja_vue !liste_deja_vue n_gauche in
           let nouveau_pointeur_droite = get_pointeur_liste_deja_vue !liste_deja_vue n_droite in
           if nouveau_gauche = nouveau_pointeur_gauche && nouveau_droite = nouveau_pointeur_droite then
@@ -625,7 +627,7 @@ let rec regle_M noeud liste_deja_vue =
             Noeud(x, nouveau_gauche, nouveau_pointeur_droite)
         end
         else if b1 then begin
-          Printf.printf "gauche!=droite, gauche dans la liste, droite pas dans la liste\n\n";
+          (*Printf.printf "gauche!=droite, gauche dans la liste, droite pas dans la liste\n\n";*)
           liste_deja_vue := (n_droite, nouveau_droite)::!liste_deja_vue; 
           let nouveau_pointeur = get_pointeur_liste_deja_vue !liste_deja_vue n_gauche in
           if nouveau_gauche = nouveau_pointeur then
@@ -634,7 +636,7 @@ let rec regle_M noeud liste_deja_vue =
             Noeud(x, nouveau_gauche, nouveau_droite)
         end
         else if b2 then begin   
-          Printf.printf "gauche!=droite, gauche pas dans la liste, droite dans la liste\n\n";
+          (*Printf.printf "gauche!=droite, gauche pas dans la liste, droite dans la liste\n\n";*)
           liste_deja_vue := (n_gauche, nouveau_gauche)::!liste_deja_vue; 
           let nouveau_pointeur = get_pointeur_liste_deja_vue !liste_deja_vue n_droite in
           if nouveau_droite = nouveau_pointeur then
@@ -643,7 +645,7 @@ let rec regle_M noeud liste_deja_vue =
             Noeud(x, nouveau_gauche, nouveau_droite)
         end
         else begin
-          Printf.printf "gauche!=droite, gauche et droite pas dans la liste\n\n";
+          (*Printf.printf "gauche!=droite, gauche et droite pas dans la liste\n\n";*)
           liste_deja_vue := (n_droite, nouveau_droite)::(n_gauche, nouveau_gauche)::!liste_deja_vue;
           Noeud(x, nouveau_gauche, nouveau_droite)
         end
@@ -651,7 +653,7 @@ let rec regle_M noeud liste_deja_vue =
 ;;
 
 
-(* regle_Z : arbre_decision -> unit *)
+(* regle_Z : arbre_decision -> arbre_decision *)
 let rec regle_Z noeud =
   match noeud with
   |Feuille x -> noeud
@@ -670,6 +672,7 @@ let rec regle_Z noeud =
 
 ;;
 
+(* copier_arbre : arbre_decision -> arbre_decision *)
 let rec copier_arbre arbre =
   match arbre with
   | Feuille b -> Feuille b
@@ -679,7 +682,8 @@ let rec copier_arbre arbre =
       Noeud (v,  nouvelle_gauche,  nouvelle_droite)
 ;;
 
-(* regle_M : arbre_decision -> liste_deja_vus ref -> arbre_decision *)
+
+(* compression_par_liste : arbre_decision -> (int64 list * arbre_decision) list ref -> arbre_decision*)
 let compression_par_liste arbre liste_deja_vue =
   let nouveau_arbre = copier_arbre arbre in 
   let nouveau_arbre = regle_Z nouveau_arbre in
@@ -842,19 +846,21 @@ let () =
   let t = table [25899L] 16 in
   let arbre = cons_arbre t  in 
   dot "arbre_decision.dot" arbre;
-  (*let n = calcul_nb_noeud arbre in
+  (*
+  let n = calcul_nb_noeud arbre in
   Printf.printf "noeud arbre : %d\n" (n);
   Printf.printf "noeud arbre : %d\n" (arrondi_puissance2_superieur n);
-*)
-  (*let t = tableau arbre in
+
+  let t = tableau arbre in
   for i=0 to (Array.length t -1) do
     let p, n = t.(i) in
     Printf.printf "%d "n;
   done;
-  Printf.printf "\n\n";*)
+  Printf.printf "\n\n";
+  *)
 ;;
 
-
+(*
 let () =
 
   let n1 = Noeud(2, (Feuille false) ,  (Feuille true)) in
@@ -869,6 +875,7 @@ let () =
   Printf.printf "n1==n2 : %b\n" (n1==n2) ;
 *)
 ;;
+*)
 
 (*****************************************)
 (*                                       *)
@@ -882,9 +889,276 @@ let () =
   let arbre = cons_arbre t  in
   let zdd = compression_par_liste arbre (ref []) in
   dot "zdd.dot" zdd;
-  print_arbre zdd;
+  (*print_arbre_decision zdd;
+  print_newline();
+  let n = calcul_nb_noeud zdd in
+  Printf.printf "nb noeud : %d\n" n;*)
+
+  let arbre2 = Noeud(1, 
+                    Noeud(2,
+                          Noeud(3,
+                            Noeud(4,Feuille true, Feuille true),
+                            Noeud(4,Feuille false, Feuille true)
+                            ),
+                          Noeud(4,Feuille false, Feuille true)
+                          ),
+                    Noeud(2,
+                          Noeud(3,Feuille true, Feuille true),
+                          Noeud(3,
+                            Noeud(4,Feuille false, Feuille true),
+                            Feuille true)
+                          )
+                    )
+in 
+assert(zdd=arbre2);
+
+;;
+
+
+
+(*************************************************************)
+(*                                                           *)
+(*                                                           *)
+(*           IV.Compression avec historique stoké            *)
+(*              dans une structure arborescente              *)  
+(*                                                           *)
+(*                                                           *)
+(*************************************************************)
+
+
+
+(*****************************************)
+(*                                       *)
+(*        Q15 : ArbreDejaVus             *)
+(*                                       *)
+(*****************************************)
+
+type arbre_deja_vus =
+  | Leaf
+  | Node of  arbre_decision option * arbre_deja_vus  * arbre_deja_vus
+;;
+
+let rec add_noeud_arbre_deja_vus arbre pointeur chemin =
+  match arbre, chemin with
+  | Leaf, [] -> Node (Some pointeur,Leaf, Leaf)
+  | Leaf, b::bs -> if b then Node ( None,Leaf, add_noeud_arbre_deja_vus Leaf pointeur bs)
+                     else Node ( None,add_noeud_arbre_deja_vus Leaf pointeur bs, Leaf)
+  | Node ( e,g, d), [] -> Node ( Some pointeur,g, d)
+  | Node ( e,g, d), b::bs -> if b then Node ( e,g, add_noeud_arbre_deja_vus d pointeur bs)
+                           else Node ( e,add_noeud_arbre_deja_vus g pointeur bs, d)
+;;
+
+let rec print_arbre_deja_vus arbre =
+  let rec aux = function
+    | Leaf -> "Leaf"
+    | Node (decision, gauche, droite) ->
+      let decision_str =
+        match decision with
+        | Some x -> "arbre_decision"
+        | None -> "vide"
+      in
+      "Node (" ^ decision_str ^ ", " ^ aux gauche ^ ", " ^ aux droite ^ ")"
+  in
+  let res = aux arbre in 
+  Printf.printf "%s\n" res;
+;;
+
+
+let rec get_element_arbre_deja_vus arbre chemin =
+  let rec aux node = function
+    | [] -> (
+        match node with
+        | Leaf -> failwith"L'element n'existe pas"
+        | Node(e,_,_) -> 
+          match e with
+          |None -> failwith"L'element n'existe pas"
+          |Some x -> x
+      )
+    | true :: bs -> (
+        match node with
+        | Node (_, _, droite) -> aux droite bs
+        | _ -> failwith"L'element n'existe pas"
+      )
+    | false :: bs -> (
+        match node with
+        | Node (_, gauche, _) -> aux gauche bs
+        | _ -> failwith"L'element n'existe pas"
+      )
+  in
+  aux arbre chemin
+;;
+
+
+
+
+let rec contient_arbre_deja_vus arbre chemin =
+  let rec aux node = function
+    | [] -> (
+        match node with
+        | Leaf -> false
+        | Node(e,_,_) -> 
+          match e with
+          |None -> false
+          |Some x -> true
+      )
+    | true :: bs -> (
+        match node with
+        | Node (_, _, droite) -> aux droite bs
+        | _ -> false
+      )
+    | false :: bs -> (
+        match node with
+        | Node (_, gauche, _) -> aux gauche bs
+        | _ -> false
+      )
+  in
+  aux arbre chemin
+;;
+
+(*
+let () =
+  let arbre_deja_vue= Node(None,Leaf,Leaf) in
+  let arbre_decision1 = Noeud(1, Feuille false, Feuille true) in
+  let bit = [false;true] in
+  let arbre_deja_vue = add_noeud_arbre_deja_vus arbre_deja_vue arbre_decision1 bit in
+  print_arbre_deja_vus arbre_deja_vue;
+  let arbre_decision2 = get_element_arbre_deja_vus arbre_deja_vue bit in
+  print_arbre_decision arbre_decision2;
+  assert(arbre_decision1=arbre_decision2)
+;;
+*)
+
+(*****************************************)
+(*                                       *)
+(*                Q16                    *)
+(*                                       *)
+(*****************************************)
+
+let rec regle_M_bis noeud arbre_deja_vue =
+  match noeud with 
+  | Feuille x -> noeud
+  | Noeud (x, gauche, droite) -> 
+      let nouveau_gauche = regle_M_bis gauche arbre_deja_vue in
+      let nouveau_droite = regle_M_bis droite arbre_deja_vue in
+      
+      (* Bit correspondant aux fils gauche et droit *)
+      let n_gauche = liste_feuilles nouveau_gauche in
+      let n_droite = liste_feuilles nouveau_droite in
+      
+      (*
+      Printf.printf "Noeud : %d\n" x;
+      print_bits n_gauche;
+      print_bits n_droite;
+      *)
+
+      let b1 = contient_arbre_deja_vus !arbre_deja_vue n_gauche in
+      let b2 = contient_arbre_deja_vus !arbre_deja_vue n_droite in
+      
+      if n_gauche = n_droite then
+        if b1 then begin
+          (*Printf.printf "gauche=droite, gauche et droite dans la liste\n\n";*)
+          let nouveau_pointeur = get_element_arbre_deja_vus !arbre_deja_vue n_gauche in
+          if nouveau_gauche = nouveau_pointeur then
+            Noeud(x, nouveau_pointeur, nouveau_pointeur)
+          else
+            Noeud(x, nouveau_gauche, nouveau_gauche)
+        end
+        else begin
+          (*Printf.printf "gauche=droite, gauche et droite pas dans la liste\n\n"; *)
+          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_gauche n_gauche;
+          Noeud(x, nouveau_gauche, nouveau_gauche)
+        end
+      else begin
+        if b1 && b2 then begin
+          (*Printf.printf "gauche!=droite, gauche et droite dans la liste\n\n";*)
+          let nouveau_pointeur_gauche = get_element_arbre_deja_vus !arbre_deja_vue n_gauche in
+          let nouveau_pointeur_droite = get_element_arbre_deja_vus !arbre_deja_vue n_droite in
+          if nouveau_gauche = nouveau_pointeur_gauche && nouveau_droite = nouveau_pointeur_droite then
+            Noeud(x, nouveau_pointeur_gauche, nouveau_pointeur_droite)
+          else if nouveau_gauche = nouveau_pointeur_gauche then
+            Noeud(x, nouveau_pointeur_gauche, nouveau_droite)
+          else
+            Noeud(x, nouveau_gauche, nouveau_pointeur_droite)
+        end
+        else if b1 then begin
+          (*Printf.printf "gauche!=droite, gauche dans la liste, droite pas dans la liste\n\n";*)
+          
+          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_droite n_droite; 
+          let nouveau_pointeur = get_element_arbre_deja_vus !arbre_deja_vue n_gauche in
+          if nouveau_gauche = nouveau_pointeur then
+            Noeud(x, nouveau_pointeur, nouveau_droite)
+          else
+            Noeud(x, nouveau_gauche, nouveau_droite)
+        end
+        else if b2 then begin   
+          (*Printf.printf "gauche!=droite, gauche pas dans la liste, droite dans la liste\n\n";*)
+          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_gauche n_gauche; 
+          let nouveau_pointeur = get_element_arbre_deja_vus !arbre_deja_vue n_droite in
+          if nouveau_droite = nouveau_pointeur then
+            Noeud(x, nouveau_gauche, nouveau_pointeur)
+          else
+            Noeud(x, nouveau_gauche, nouveau_droite)
+        end
+        else begin
+          (*Printf.printf "gauche!=droite, gauche et droite pas dans la liste\n\n";*)
+          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_gauche n_gauche;
+          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_droite n_droite;
+          Noeud(x, nouveau_gauche, nouveau_droite)
+        end
+      end
+;;
+
+
+(*****************************************)
+(*                                       *)
+(*       Q17 : CompressionParArbre       *)
+(*                                       *)
+(*****************************************)
+
+(* compression_par_arbre : arbre_decision -> arbre_deja_vus ref -> arbre_decision *)
+let compression_par_arbre arbre arbre_deja_vue =
+  let nouveau_arbre = copier_arbre arbre in 
+  let nouveau_arbre = regle_Z nouveau_arbre in
+  let nouveau_arbre = regle_M_bis nouveau_arbre arbre_deja_vue in
+  nouveau_arbre
+;;
+
+
+(*****************************************)
+(*                                       *)
+(*                Q18                    *)
+(*                                       *)
+(*****************************************)
+
+let () = 
+  let t = table [25899L] 16 in
+  let arbre = cons_arbre t  in
+  let arbre_deja_vue = Leaf in
+  let zdd = compression_par_arbre arbre (ref arbre_deja_vue) in
+  dot "zdd_bis.dot" zdd;
+  (*
+  print_arbre_decision zdd;
   print_newline();
   let n = calcul_nb_noeud zdd in
   Printf.printf "nb noeud : %d\n" n;
+  *)
+
+  let arbre2 = Noeud(1, 
+                    Noeud(2,
+                          Noeud(3,
+                            Noeud(4,Feuille true, Feuille true),
+                            Noeud(4,Feuille false, Feuille true)
+                            ),
+                          Noeud(4,Feuille false, Feuille true)
+                          ),
+                    Noeud(2,
+                          Noeud(3,Feuille true, Feuille true),
+                          Noeud(3,
+                            Noeud(4,Feuille false, Feuille true),
+                            Feuille true)
+                          )
+                    )
+in 
+assert(zdd=arbre2);
 
 ;;
