@@ -313,8 +313,7 @@ let table x n =
 (*            Q6 : GenAlea               *)
 (*                                       *)
 (*****************************************)
-
-(* genere_aleatoire : int -> grand_entier *)
+(*(* genere_aleatoire : int -> grand_entier *)
 (* génère aléatoirement un grand entier de au moins n bits *)
 let rec genere_aleatoire n =
   Random.self_init ();
@@ -324,7 +323,25 @@ let rec genere_aleatoire n =
   end else
     let x = Random.int64 (Int64.sub (Int64.shift_left 1L n) 1L) in
     [x]
+;;*)
+
+let random_int64 () =
+  let high = Int64.of_int (Random.bits ()) in
+  let mid = Int64.of_int (Random.bits ()) in
+  let low = Int64.of_int (Random.bits ()) in
+  Int64.(logor (shift_left high 42) (logor (shift_left mid 21) low))
+
+let rec genere_aleatoire n =
+  Random.self_init ();
+  if n > 64 then begin
+    let head = random_int64 () in
+    head :: (genere_aleatoire (n - 64))
+  end else
+    let x = Random.int64 (Int64.shift_left 1L n) in
+    [x]
 ;;
+
+
 
 
 
@@ -1162,3 +1179,70 @@ in
 assert(zdd=arbre2);
 
 ;;
+
+(*****************************************)
+(*                                       *)
+(*                 Q19,20,21             *)
+(*                                       *)
+(*****************************************)
+
+    (* Measure the execution time of a function f applied to x *)
+let time f x =
+  let start = Unix.gettimeofday () in
+  let fx = f x in
+  (Unix.gettimeofday () -. start), fx
+
+(* Calculate the size of a tree to simulate space complexity *)
+let rec taille_arbre (arbre: arbre_decision): int = match arbre with 
+  | Feuille _ -> 1
+  | Noeud (_,g, d) -> 1 + taille_arbre g + taille_arbre d
+(* ... 前面的代码不变 ... *)
+
+let genere_et_compresse_arbre_record bits =
+  let grand_entier_aleatoire = genere_aleatoire bits in
+  let bits_list = table grand_entier_aleatoire bits in
+  let construction_time, arbre_genere = time cons_arbre bits_list in
+  let tree_size = taille_arbre arbre_genere in
+  let space_complexity_construction = tree_size in (* 假设生成树的大小就是其空间复杂度 *)
+  let arbre_deja_vue_liste = ref [] in
+  let compression_time_liste, compressed_list = time (compression_par_liste arbre_genere) arbre_deja_vue_liste in
+  let space_complexity_list = taille_arbre compressed_list in  (* Assuming list is converted to tree for measurement *)
+  let arbre_deja_vue_arbre = ref Leaf in
+  let compression_time_arbre, compressed_tree = time (compression_par_arbre arbre_genere) arbre_deja_vue_arbre in
+  let space_complexity_tree = taille_arbre compressed_tree in
+  (bits, tree_size, construction_time, compression_time_liste, compression_time_arbre, space_complexity_list, space_complexity_tree, space_complexity_construction)
+
+(* ... generate_data_points 和 write_to_csv 函数中添加新数据字段 ... *)
+
+let generate_data_points () =
+  let rec aux acc bits =
+    if bits > 64 then acc
+    else
+      let record = genere_et_compresse_arbre_record bits in
+      aux (record :: acc) (bits + 4) (* Increment by 4 each time *)
+  in
+  aux [] 16 (* Start from 16 bits *)
+
+let write_to_csv file_path data =
+  let oc = open_out file_path in
+  Printf.fprintf oc "bits, tree_size, construction_time, compression_time_liste, compression_time_arbre, space_complexity_list, space_complexity_tree, space_complexity_construction\n";
+  List.iter (fun (bits, tree_size, construction_time, compression_time_liste, compression_time_arbre, space_complexity_list, space_complexity_tree, space_complexity_construction) ->
+    Printf.fprintf oc "%d, %d, %f, %f, %f, %d, %d, %d\n" bits tree_size construction_time compression_time_liste compression_time_arbre space_complexity_list space_complexity_tree space_complexity_construction
+
+  ) data;
+  close_out oc
+
+(* ... 剩下的代码不变 ... *)
+let () =
+  Printexc.record_backtrace true; (* Enable stack trace *)
+  try
+    Random.self_init (); (* Initialize random generator *)
+    let file_path = "arbre_times.csv" in
+    let data_points = generate_data_points () in
+    let data_to_write = List.rev data_points in (* Reverse the list for ascending order *)
+    write_to_csv file_path data_to_write;
+    Printf.printf "Data collection complete. Data written to %s\n" file_path;
+  with e ->
+    Printf.printf "An exception occurred: %s\n" (Printexc.to_string e);
+    Printexc.print_backtrace stdout; (* Print the stack trace *)
+    exit 1
