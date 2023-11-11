@@ -1196,7 +1196,7 @@ let time f x =
 let rec taille_arbre (arbre: arbre_decision): int = match arbre with 
   | Feuille _ -> 1
   | Noeud (_,g, d) -> 1 + taille_arbre g + taille_arbre d
-(* ... 前面的代码不变 ... *)
+
 
 let genere_et_compresse_arbre_record bits =
   let grand_entier_aleatoire = genere_aleatoire bits in
@@ -1205,29 +1205,29 @@ let genere_et_compresse_arbre_record bits =
   let tree_size = taille_arbre arbre_genere in
   let space_complexity_construction = tree_size in (* 假设生成树的大小就是其空间复杂度 *)
   let arbre_deja_vue_liste = ref [] in
-  let compression_time_liste, compressed_list = time (compression_par_liste arbre_genere) arbre_deja_vue_liste in
-  let space_complexity_list = taille_arbre compressed_list in  (* Assuming list is converted to tree for measurement *)
+  let compression_by_list_time, compressed_list = time (compression_par_liste arbre_genere) arbre_deja_vue_liste in
+  let space_complexity_by_list = taille_arbre compressed_list in  (* Assuming list is converted to tree for measurement *)
   let arbre_deja_vue_arbre = ref Leaf in
-  let compression_time_arbre, compressed_tree = time (compression_par_arbre arbre_genere) arbre_deja_vue_arbre in
-  let space_complexity_tree = taille_arbre compressed_tree in
-  (bits, tree_size, construction_time, compression_time_liste, compression_time_arbre, space_complexity_list, space_complexity_tree, space_complexity_construction)
+  let compression_by_tree_time, compressed_tree = time (compression_par_arbre arbre_genere) arbre_deja_vue_arbre in
+  let space_complexity_by_tree = taille_arbre compressed_tree in
+  (bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction)
 
-(* ... generate_data_points 和 write_to_csv 函数中添加新数据字段 ... *)
+
 
 let generate_data_points () =
   let rec aux acc bits =
-    if bits > 64 then acc
+    if bits > 1024 then acc
     else
       let record = genere_et_compresse_arbre_record bits in
-      aux (record :: acc) (bits + 4) (* Increment by 4 each time *)
+      aux (record :: acc) (bits*2) (* Increment by 4 each time *)
   in
-  aux [] 16 (* Start from 16 bits *)
+  aux [] 1 (* Start from 16 bits *)
 
 let write_to_csv file_path data =
   let oc = open_out file_path in
-  Printf.fprintf oc "bits, tree_size, construction_time, compression_time_liste, compression_time_arbre, space_complexity_list, space_complexity_tree, space_complexity_construction\n";
-  List.iter (fun (bits, tree_size, construction_time, compression_time_liste, compression_time_arbre, space_complexity_list, space_complexity_tree, space_complexity_construction) ->
-    Printf.fprintf oc "%d, %d, %f, %f, %f, %d, %d, %d\n" bits tree_size construction_time compression_time_liste compression_time_arbre space_complexity_list space_complexity_tree space_complexity_construction
+  Printf.fprintf oc "bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction\n";
+  List.iter (fun (bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction) ->
+    Printf.fprintf oc "%d, %d, %f, %f, %f, %d, %d, %d\n" bits tree_size construction_time compression_by_list_time compression_by_tree_time space_complexity_by_list space_complexity_by_tree space_complexity_construction
 
   ) data;
   close_out oc
