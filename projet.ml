@@ -13,7 +13,7 @@
 (*                                       *)
 (*****************************************)
 
-(* liste d'entiers a 64 bit *)
+(* liste d'entiers a 64 bits *)
 type grand_entier = int64 list;;
 
 
@@ -27,7 +27,7 @@ let insert x valeur =
 (* enlève le premier element de la liste *)
 let remove_head x  = 
   match x with
-  |[] -> failwith "Il n'y a aucunn élément dans la liste"
+  |[] -> failwith "Il n'y a aucun élément dans la liste"
   |t::s -> s
 ;;
 
@@ -35,7 +35,7 @@ let remove_head x  =
 (* récupère le premier élèment de la liste si il existe, sinon erreur *)
 let get_head x =
   match x with
-  |[] -> failwith "Il n'y a aucunn élément dans la liste"
+  |[] -> failwith "Il n'y a aucun élément dans la liste"
   |t::_ -> t
 ;;
 
@@ -50,11 +50,6 @@ let print_grand_entier x =
   Printf.printf "]\n";
 ;;
 
-
-
-let print_int64 n =
-  Printf.printf "%Ld\n" n;
-;;
 
 
 (* print_bits : bool list -> unit *)
@@ -82,26 +77,6 @@ let print_bits bits =
 ;;
 
 
-(*
-let () = 
-  (* Exemple d'utilisation *)
-  let x = [] in
-  let x = insert x 0L in
-  let x = insert x (Int64.shift_left 1L 36) in
-  Printf.printf "Test primitive\n";
-  print_newline();
-  Printf.printf "Liste initial\n";
-  print_grand_entier x;
-  print_newline();
-  Printf.printf "get_head : %Ld\n" (get_head x);
-  print_newline();
-  let x = remove_head x in
-  Printf.printf "après remove_head \n";
-  print_grand_entier x;
-  print_newline();
-  print_newline();
-;;
-*)
 
 
 (*****************************************)
@@ -169,11 +144,11 @@ let rec decomposition x =
             (* concat une liste de taille 64 bits remplit de false a une decomposition de la suite de la liste*)
   |0L::s -> (create_false_list 64) @ (decomposition s) 
   |t::s -> 
-    if s=[] then
-      (* convertie x (le dernier élément de la liste ) : int64 en binaire booléene *)
+    if s = [] then
+    (* convertie x (le dernier élément de la liste ) : int64 en binaire booléene *)
       (int64_to_bits t) @ (decomposition s)
     else
-      (* convertie x en binaire de 64bits *)
+    (* convertie x en binaire de 64bits *)
       (completion (int64_to_bits t) 64) @ (decomposition s)
 ;;
 
@@ -247,10 +222,10 @@ let int64_of_binary_list bits =
 
 
 (* remove_nb : bool list -> int -> bool list *)
-(* supprime n 1er éléments de la liste *)
+(* supprime n 1er éléments de la liste s'il exixte*)
 let rec remove_nb bits n =
   match bits,n with
-  |[],_ -> failwith "Aucun éléments dans la liste"
+  |[],_ -> failwith "Aucun élément dans la liste"
   |_,0 -> bits
   |_::s,_ -> remove_nb s (n-1)
 ;;
@@ -301,11 +276,19 @@ let () =
 (*                                       *)
 (*****************************************)
 
+(* is_power_of_two : int -> bool *)
+(* vérifier si n est une puissance de 2 *)
+let is_power_of_two n =
+  n > 0 && (n land (n - 1) = 0)
+;;
+
 (* table : grand_entier -> int -> bool list *)
-(* convertie un grand entier en bits et complète a n bits *)
+(* convertie un grand entier en table de vérité, c-à-d en bits d'une taille n de puissance de 2 *)
 let table x n =
-  let bits = decomposition x in
-  completion bits n
+  if not (is_power_of_two n) then failwith (Printf.sprintf "%d n'est pas une puissance de 2" n)
+  else
+    let bits = decomposition x in
+    completion bits n
 ;;
 
 (*****************************************)
@@ -313,24 +296,17 @@ let table x n =
 (*            Q6 : GenAlea               *)
 (*                                       *)
 (*****************************************)
-(*(* genere_aleatoire : int -> grand_entier *)
-(* génère aléatoirement un grand entier de au moins n bits *)
-let rec genere_aleatoire n =
-  Random.self_init ();
-  if n > 64 then begin
-    let head = Random.int64 Int64.max_int in
-    head :: (genere_aleatoire (n - 64))
-  end else
-    let x = Random.int64 (Int64.sub (Int64.shift_left 1L n) 1L) in
-    [x]
-;;*)
-
+(* random_int64 : unit -> int64 *)
+(* génére un int64 aléatoirement *)
 let random_int64 () =
   let high = Int64.of_int (Random.bits ()) in
   let mid = Int64.of_int (Random.bits ()) in
   let low = Int64.of_int (Random.bits ()) in
   Int64.(logor (shift_left high 42) (logor (shift_left mid 21) low))
+;;
 
+(* genere_aleatoire : int -> grand_entier *)
+(* génère aléatoirement un grand entier de au moins n bits *)
 let rec genere_aleatoire n =
   Random.self_init ();
   if n > 64 then begin
@@ -343,29 +319,19 @@ let rec genere_aleatoire n =
 
 
 
-
-
 let () = 
   for i=0 to 1000 do
     let x = (genere_aleatoire 100) in
     let bits = decomposition x in
     assert (List.length bits <= 100); 
     (*
-    print_int (List.length bits);
-    print_newline();
-    
     Printf.printf "grand entier générer aléatoire sur 100bits\n";
+    Printf.printf "Bits : %d\n" (List.length bits);
     print_grand_entier x;
-    print_bits bits;
+    print_newline();
     *)
   done;
 ;;
-
-
-
-
-
-
 
 
 
@@ -397,46 +363,33 @@ type arbre_decision =
 (*          Q8 : cons_arbre              *)
 (*                                       *)
 (*****************************************)
-  
-(* take : int -> 'a list -> 'a list *)
-(* Récupère les n premiers éléments d'une liste *)
-let rec take n lst =
-  match n, lst with
-  | 0, _ | _, [] -> []
-  | n, x::xs -> x :: take (n-1) xs
 
-(* drop : int -> 'a list -> 'a list *)
-(* Supprime les n premiers éléments d'une liste *)
-let rec drop n lst =
-  match n, lst with
-  | 0, _ | _, [] -> lst
-  | n, _::xs -> drop (n-1) xs
-;;
 (* set_fils_gauche_arbre : arbre_decision -> arbre_decision -> arbre_decision *)
 (* si l'arbre possède un fils gauche alors renvoie l'arbre modifier sinon sinon l'arbre initial*)
 let set_fils_gauche_arbre arbre nouveau_fils_gauche = 
   match arbre with
-  | Noeud(n, gauche, droite) ->
+  | Noeud(n, gauche, droit) ->
     (*retourne l'arbre modifier*)
-      Noeud(n,nouveau_fils_gauche,droite)
+      Noeud(n,nouveau_fils_gauche,droit)
   | _ -> arbre
 ;;
 
-(* set_fils_droite_arbre : arbre_decision -> arbre_decision -> arbre_decision *)
-(* si l'arbre possède un fils droite alors renvoie l'arbre modifier sinon l'arbre initial *)
-let set_fils_droite_arbre arbre nouveau_fils_droite = 
+(* set_fils_droit_arbre : arbre_decision -> arbre_decision -> arbre_decision *)
+(* si l'arbre possède un fils droit alors renvoie l'arbre modifier sinon l'arbre initial *)
+let set_fils_droit_arbre arbre nouveau_fils_droit = 
   match arbre with
-  | Noeud(n, gauche, droite) ->
+  | Noeud(n, gauche, droit) ->
     (*retourne l'arbre modifier*)
-     Noeud(n,gauche,nouveau_fils_droite)
+     Noeud(n,gauche,nouveau_fils_droit)
   | _ -> arbre
 ;;
 
-let set_fils_arbre arbre nouveau_fils_gauche nouveau_fils_droite = 
+(* set_fils_arbre : arbre_decision -> arbre_decision -> rbre_decision -> arbre_decision *)
+let set_fils_arbre arbre nouveau_fils_gauche nouveau_fils_droit = 
   match arbre with
   | Noeud(n, _, _) ->
     (*retourne l'arbre modifier*)
-      Noeud(n,nouveau_fils_gauche,nouveau_fils_droite)
+      Noeud(n,nouveau_fils_gauche,nouveau_fils_droit)
   | _ -> arbre
 ;;
 
@@ -450,13 +403,13 @@ let cons_arbre table =
     | [] -> failwith "La table de vérité est vide.";
     | [x] ->  Feuille x  (* Si la table contient un seul élément, on crée une feuille *) 
     | _ -> 
-      (* construction en préfixe : créer d'abord la racine puis enfant gauche et enfant droite *)
+      (* construction en préfixe : créer d'abord la racine puis enfant gauche et enfant droit *)
       let noeud = Noeud(profondeur, (Feuille false),(Feuille false)) in
       let mid = (List.length table) / 2 in
-      let gauche = (aux (take mid table) (profondeur + 1)) in  (* Récupérer la première moitié *)
-      let droite = (aux (drop mid table) (profondeur + 1)) in  (* Récupérer la seconde moitié *)
+      let gauche = (aux (completion table mid) (profondeur + 1)) in  (* Récupérer la première moitié *)
+      let droit = (aux (remove_nb table mid) (profondeur + 1)) in  (* Récupérer la seconde moitié *)
       let noeud = set_fils_gauche_arbre noeud  gauche in
-      let noeud = set_fils_droite_arbre noeud  droite in
+      let noeud = set_fils_droit_arbre noeud  droit in
       noeud
   in
   let arbre = aux table 1 in
@@ -466,7 +419,7 @@ let cons_arbre table =
 
 
 
-(* Une fonction pour afficher l'arbre de décision *)
+(* afficher l'arbre de décision *)
 let rec print_arbre_decision = function 
   | Feuille x -> Printf.printf "%b " x
   | Noeud (v, g, d) -> 
@@ -479,41 +432,32 @@ let rec print_arbre_decision = function
 
 
 let () = 
+  let t1 = table [25899L] 16 in
+  let arbre1 = cons_arbre t1  in
+  
   (*
-  let t1 = table (genere_aleatoire 4) 4 in  (* Prenons une table générée aléatoirement de taille 4 *)
-  let arbre1 = cons_arbre t1 1 in
   print_bits t1;
   print_arbre_decision arbre1;
-  print_newline();
-  *)
-  
-  let t2 = table [25899L] 16 in
-  let arbre2 = cons_arbre t2  in
-  
-  (*
-  print_bits t2;
-  print_arbre_decision arbre2;
   *)
 
-  let arbre3 = Noeud(1,
-                   (Noeud(2,
-                     (Noeud(3,
-                       (Noeud(4,  (Feuille true),  (Feuille true))),
-                       (Noeud(4,  (Feuille false), (Feuille true))))),
-                     (Noeud(3,
-                       (Noeud(4,  (Feuille false),  (Feuille true))),
-                       (Noeud(4,  (Feuille false),  (Feuille false))))))),
+  let arbre2 = Noeud(1,
+                     (Noeud(2,
+                            (Noeud(3,
+                                   (Noeud(4,  (Feuille true),  (Feuille true))),
+                                   (Noeud(4,  (Feuille false), (Feuille true))))),
+                            (Noeud(3,
+                                   (Noeud(4,  (Feuille false),  (Feuille true))),
+                                   (Noeud(4,  (Feuille false),  (Feuille false))))))),
                     
-                   (Noeud(2,
-                     (Noeud(3,
-                       (Noeud(4, (Feuille true), (Feuille false))),
-                       (Noeud(4, (Feuille true), (Feuille false))))),
-                     (Noeud(3,
-                       (Noeud(4,( Feuille false), (Feuille true))),
-                       (Noeud(4, (Feuille true), (Feuille false))))))))
-              in
-  assert(arbre2 = arbre3);
-  
+                     (Noeud(2,
+                            (Noeud(3,
+                                   (Noeud(4, (Feuille true), (Feuille false))),
+                                   (Noeud(4, (Feuille true), (Feuille false))))),
+                            (Noeud(3,
+                                   (Noeud(4,( Feuille false), (Feuille true))),
+                                   (Noeud(4, (Feuille true), (Feuille false))))))))
+  in
+  assert(arbre1 = arbre2);
 ;;
 
 
@@ -565,13 +509,6 @@ let () =
 type liste_deja_vus = (grand_entier * arbre_decision) list
 
 
-(*****************************************)
-(*                                       *)
-(*      Q11 : CompressionParListe        *)
-(*                                       *)
-(*****************************************)
-
-
 (* contient : liste_deja_vus -> grand_entier -> bool *)
 (* test si x est la 1er composant d'un coupe de la liste_deja_vue *)
 let rec contient liste_deja_vue x = 
@@ -579,7 +516,6 @@ let rec contient liste_deja_vue x =
   |[] -> false
   |(n,pointeur)::suite -> (n = x) || contient suite x
 ;;
-
 
 
 (* get_pointeur_liste_deja_vue : liste_deja_vus -> grand_entier -> arbre_decision *)
@@ -595,31 +531,31 @@ let rec get_pointeur_liste_deja_vue liste_deja_vue x =
 ;;
 
 
+(*****************************************)
+(*                                       *)
+(*      Q11 : CompressionParListe        *)
+(*                                       *)
+(*****************************************)
 
-(* regle_M : arbre_decision -> (int64 list * arbre_decision) list ref -> arbre_decision *)
+(* regle_M : arbre_decision -> liste_deja_vus ref -> arbre_decision *)
 let rec regle_M noeud liste_deja_vue =
   match noeud with 
   | Feuille x -> noeud
-  | Noeud (x, gauche, droite) -> 
+  | Noeud (x, gauche, droit) -> 
       let nouveau_gauche = regle_M gauche liste_deja_vue in
-      let nouveau_droite = regle_M droite liste_deja_vue in
+      let nouveau_droit = regle_M droit liste_deja_vue in
       
       (* Grand entier correspondant aux fils gauche et droit *)
       let n_gauche = composition (liste_feuilles nouveau_gauche) in
-      let n_droite = composition (liste_feuilles nouveau_droite) in
+      let n_droit = composition (liste_feuilles nouveau_droit) in
       
-      (*
-      Printf.printf "Noeud : %d\n" x;
-      print_grand_entier n_gauche;
-      print_grand_entier n_droite;
-      *)
-
+      (* vérifie si fils gauche et droit sont dans la liste déjà vus *)
       let b1 = contient !liste_deja_vue n_gauche in
-      let b2 = contient !liste_deja_vue n_droite in
+      let b2 = contient !liste_deja_vue n_droit in
       
-      if n_gauche = n_droite then
+      if n_gauche = n_droit then
         if b1 then begin
-          (*Printf.printf "gauche=droite, gauche et droite dans la liste\n\n";*)
+          (* fils gauche = fils droit, fils gauche et fils droit dans la liste *)
           let nouveau_pointeur = get_pointeur_liste_deja_vue !liste_deja_vue n_gauche in
           if nouveau_gauche = nouveau_pointeur then
             Noeud(x, nouveau_pointeur, nouveau_pointeur)
@@ -627,44 +563,44 @@ let rec regle_M noeud liste_deja_vue =
             Noeud(x, nouveau_gauche, nouveau_gauche)
         end
         else begin
-          (*Printf.printf "gauche=droite, gauche et droite pas dans la liste\n\n";*)
+          (* fils gauche = fils droit, flis gauche et fils droit pas dans la liste *)
           liste_deja_vue := (n_gauche, nouveau_gauche)::!liste_deja_vue;
           Noeud(x, nouveau_gauche, nouveau_gauche)
         end
       else begin
         if b1 && b2 then begin
-          (*Printf.printf "gauche!=droite, gauche et droite dans la liste\n\n";*)
+          (*fils gauche != fils droit, fils gauche et fils droit dans la liste*)
           let nouveau_pointeur_gauche = get_pointeur_liste_deja_vue !liste_deja_vue n_gauche in
-          let nouveau_pointeur_droite = get_pointeur_liste_deja_vue !liste_deja_vue n_droite in
-          if nouveau_gauche = nouveau_pointeur_gauche && nouveau_droite = nouveau_pointeur_droite then
-            Noeud(x, nouveau_pointeur_gauche, nouveau_pointeur_droite)
+          let nouveau_pointeur_droit = get_pointeur_liste_deja_vue !liste_deja_vue n_droit in
+          if nouveau_gauche = nouveau_pointeur_gauche && nouveau_droit = nouveau_pointeur_droit then
+            Noeud(x, nouveau_pointeur_gauche, nouveau_pointeur_droit)
           else if nouveau_gauche = nouveau_pointeur_gauche then
-            Noeud(x, nouveau_pointeur_gauche, nouveau_droite)
+            Noeud(x, nouveau_pointeur_gauche, nouveau_droit)
           else
-            Noeud(x, nouveau_gauche, nouveau_pointeur_droite)
+            Noeud(x, nouveau_gauche, nouveau_pointeur_droit)
         end
         else if b1 then begin
-          (*Printf.printf "gauche!=droite, gauche dans la liste, droite pas dans la liste\n\n";*)
-          liste_deja_vue := (n_droite, nouveau_droite)::!liste_deja_vue; 
+          (* fils gauche != fils droit, fils gauche dans la liste, fils droit pas dans la liste *)
+          liste_deja_vue := (n_droit, nouveau_droit)::!liste_deja_vue; 
           let nouveau_pointeur = get_pointeur_liste_deja_vue !liste_deja_vue n_gauche in
           if nouveau_gauche = nouveau_pointeur then
-            Noeud(x, nouveau_pointeur, nouveau_droite)
+            Noeud(x, nouveau_pointeur, nouveau_droit)
           else
-            Noeud(x, nouveau_gauche, nouveau_droite)
+            Noeud(x, nouveau_gauche, nouveau_droit)
         end
         else if b2 then begin   
-          (*Printf.printf "gauche!=droite, gauche pas dans la liste, droite dans la liste\n\n";*)
+          (*fils gauche != fils droit, fils gauche pas dans la liste, fils droit dans la liste*)
           liste_deja_vue := (n_gauche, nouveau_gauche)::!liste_deja_vue; 
-          let nouveau_pointeur = get_pointeur_liste_deja_vue !liste_deja_vue n_droite in
-          if nouveau_droite = nouveau_pointeur then
+          let nouveau_pointeur = get_pointeur_liste_deja_vue !liste_deja_vue n_droit in
+          if nouveau_droit = nouveau_pointeur then
             Noeud(x, nouveau_gauche, nouveau_pointeur)
           else
-            Noeud(x, nouveau_gauche, nouveau_droite)
+            Noeud(x, nouveau_gauche, nouveau_droit)
         end
         else begin
-          (*Printf.printf "gauche!=droite, gauche et droite pas dans la liste\n\n";*)
-          liste_deja_vue := (n_droite, nouveau_droite)::(n_gauche, nouveau_gauche)::!liste_deja_vue;
-          Noeud(x, nouveau_gauche, nouveau_droite)
+          (* fils gauche != fils droit, fils gauche et fils droit pas dans la liste *)
+          liste_deja_vue := (n_droit, nouveau_droit)::(n_gauche, nouveau_gauche)::!liste_deja_vue;
+          Noeud(x, nouveau_gauche, nouveau_droit)
         end
       end
 ;;
@@ -674,36 +610,20 @@ let rec regle_M noeud liste_deja_vue =
 let rec regle_Z noeud =
   match noeud with
   |Feuille x -> noeud
-  |Noeud(x,gauche,droite) -> 
+  |Noeud(x,gauche,droit) -> 
       let nouveau_gauche = regle_Z gauche in
-      let nouveau_droite = regle_Z droite in
+      let nouveau_droit = regle_Z droit in
 
-    (*— Calculer la liste_feuilles associées à N (le nombre d’éléments qu’elle contient est une puissance de 2).*)
-      let liste_feuilles = liste_feuilles droite in
-    
-    (*— Si la deuxième moitié de la liste ne contient que des valeurs false alors remplacer le pointeur vers N (depuis son parent) vers un pointeur vers l’enfant gauche de N*)
-      if List.for_all (fun x -> x = false)  liste_feuilles then 
+      if nouveau_droit = Feuille false then 
          nouveau_gauche
       else
-        Noeud(x,nouveau_gauche,nouveau_droite)
-
-;;
-
-(* copier_arbre : arbre_decision -> arbre_decision *)
-let rec copier_arbre arbre =
-  match arbre with
-  | Feuille b -> Feuille b
-  | Noeud (v, gauche, droite) ->
-      let nouvelle_gauche = copier_arbre gauche in
-      let nouvelle_droite = copier_arbre droite in
-      Noeud (v,  nouvelle_gauche,  nouvelle_droite)
+        Noeud(x,nouveau_gauche,nouveau_droit)
 ;;
 
 
 (* compression_par_liste : arbre_decision -> (int64 list * arbre_decision) list ref -> arbre_decision*)
 let compression_par_liste arbre liste_deja_vue =
-  let nouveau_arbre = copier_arbre arbre in 
-  let nouveau_arbre = regle_Z nouveau_arbre in
+  let nouveau_arbre = regle_Z arbre in
   let nouveau_arbre = regle_M nouveau_arbre liste_deja_vue in
   nouveau_arbre
 ;;
@@ -718,8 +638,8 @@ let compression_par_liste arbre liste_deja_vue =
 let rec calcul_nb_noeud arbre =
   match arbre with
   |Feuille x -> 1
-  |Noeud(x,gauche,droite)-> 
-    1 + calcul_nb_noeud(gauche) + calcul_nb_noeud(droite)
+  |Noeud(x,gauche,droit)-> 
+    1 + calcul_nb_noeud(gauche) + calcul_nb_noeud(droit)
 ;;
 
 let arrondi_puissance2_superieur n =
@@ -765,15 +685,15 @@ let tableau arbre =
     match arbre with
     | Feuille b ->
         ()
-    | Noeud (profondeur, gauche, droite) ->  
+    | Noeud (profondeur, gauche, droit) ->  
         (* les index correspond au numéro des noeuds, c-à-d *)
-        (* index =1 -> racine, index = 2 -> fils gauche de la racine, index = 3 fils droite de la racine*)
+        (* index =1 -> racine, index = 2 -> fils gauche de la racine, index = 3 fils droit de la racine*)
         (* formule numéro du fils gauche : index+2*)
         (* formule numéro du fils gauche : index+2+1*)
         mise_a_jour_tableau t ( gauche) (index*2); 
-        mise_a_jour_tableau t ( droite) (index*2+1);
+        mise_a_jour_tableau t ( droit) (index*2+1);
         aux gauche (index * 2) t;
-        aux droite (index * 2 + 1) t;
+        aux droit (index * 2 + 1) t;
   in
   aux arbre 1 tab;
   tab
@@ -786,16 +706,16 @@ let rec generate_dot_arbre file arbre index tableau =
   | Feuille b ->
       let pointeur, n =  tableau.(index) in
       Printf.fprintf file "  Noeud%d [label=\"%b\", shape=\"none\"];\n" n b
-  | Noeud (profondeur, gauche, droite) ->
+  | Noeud (profondeur, gauche, droit) ->
       let pointeur, n =  tableau.(index) in
       Printf.fprintf file "  Noeud%d [label=\"%d\", shape=\"none\"];\n" n profondeur;
       generate_dot_arbre file gauche (index*2) tableau;
-      generate_dot_arbre file droite (index*2+1) tableau;
+      generate_dot_arbre file droit (index*2+1) tableau;
 
       let pointeur_gauche, n_gauche = tableau.(index*2) in
-      let pointeur_droite, n_droite = tableau.(index*2+1) in
+      let pointeur_droit, n_droit = tableau.(index*2+1) in
       Printf.fprintf file "  Noeud%d -> Noeud%d [style=dotted, shape=\"none\"];\n" n n_gauche;
-      Printf.fprintf file "  Noeud%d -> Noeud%d [style=solid, shape=\"none\"];\n" n n_droite
+      Printf.fprintf file "  Noeud%d -> Noeud%d [style=solid, shape=\"none\"];\n" n n_droit
 ;;
 
 
@@ -835,13 +755,6 @@ let dot filename arbre =
   let file = open_out file_intermediaire in
   Printf.fprintf file "digraph ArbreDecision {\n";
   let t = tableau arbre in
-(**  Printf.printf "len tableau : %d\n" (Array.length t);
-
-  for i=0 to (Array.length t -1) do
-    let p, n = t.(i) in
-    Printf.printf "%d "n;
-  done;
-  Printf.printf "\n\n";*)
 
   generate_dot_arbre file arbre 1 t ;
   Printf.fprintf file "}\n";
@@ -863,36 +776,8 @@ let () =
   let t = table [25899L] 16 in
   let arbre = cons_arbre t  in 
   dot "arbre_decision.dot" arbre;
-  (*
-  let n = calcul_nb_noeud arbre in
-  Printf.printf "noeud arbre : %d\n" (n);
-  Printf.printf "noeud arbre : %d\n" (arrondi_puissance2_superieur n);
-
-  let t = tableau arbre in
-  for i=0 to (Array.length t -1) do
-    let p, n = t.(i) in
-    Printf.printf "%d "n;
-  done;
-  Printf.printf "\n\n";
-  *)
 ;;
 
-(*
-let () =
-
-  let n1 = Noeud(2, (Feuille false) ,  (Feuille true)) in
-  let n2 = Noeud(2, (Feuille false) ,  (Feuille true)) in
-  let arbre = Noeud (1,  n1,  n1) in
-  let a = set_fils_droite_arbre arbre n2 in
-  dot "test.dot" a;
-(**
-  Printf.printf "n1=n2 : %b\n" (n1=n1) ;
-  Printf.printf "n1=n2 : %b\n" (n1=n2) ;
-  Printf.printf "n1==n2 : %b\n" (n1==n1) ;
-  Printf.printf "n1==n2 : %b\n" (n1==n2) ;
-*)
-;;
-*)
 
 (*****************************************)
 (*                                       *)
@@ -912,23 +797,22 @@ let () =
   Printf.printf "nb noeud : %d\n" n;*)
 
   let arbre2 = Noeud(1, 
-                    Noeud(2,
-                          Noeud(3,
-                            Noeud(4,Feuille true, Feuille true),
-                            Noeud(4,Feuille false, Feuille true)
-                            ),
-                          Noeud(4,Feuille false, Feuille true)
+                     Noeud(2,
+                           Noeud(3,
+                                 Noeud(4,Feuille true, Feuille true),
+                                 Noeud(4,Feuille false, Feuille true)
+                                ),
+                           Noeud(4,Feuille false, Feuille true)
                           ),
-                    Noeud(2,
-                          Noeud(3,Feuille true, Feuille true),
-                          Noeud(3,
-                            Noeud(4,Feuille false, Feuille true),
-                            Feuille true)
+                     Noeud(2,
+                           Noeud(3,Feuille true, Feuille true),
+                           Noeud(3,
+                                 Noeud(4,Feuille false, Feuille true),
+                                 Feuille true)
                           )
                     )
-in 
-assert(zdd=arbre2);
-
+  in  
+  assert(zdd=arbre2);
 ;;
 
 
@@ -968,13 +852,13 @@ let rec add_noeud_arbre_deja_vus arbre pointeur chemin =
 let rec print_arbre_deja_vus arbre =
   let rec aux = function
     | Leaf -> "Leaf"
-    | Node (decision, gauche, droite) ->
+    | Node (decision, gauche, droit) ->
       let decision_str =
         match decision with
         | Some x -> "arbre_decision"
         | None -> "vide"
       in
-      "Node (" ^ decision_str ^ ", " ^ aux gauche ^ ", " ^ aux droite ^ ")"
+      "Node (" ^ decision_str ^ ", " ^ aux gauche ^ ", " ^ aux droit ^ ")"
   in
   let res = aux arbre in 
   Printf.printf "%s\n" res;
@@ -993,7 +877,7 @@ let rec get_element_arbre_deja_vus arbre chemin =
       )
     | true :: bs -> (
         match node with
-        | Node (_, _, droite) -> aux droite bs
+        | Node (_, _, droit) -> aux droit bs
         | _ -> failwith"L'element n'existe pas"
       )
     | false :: bs -> (
@@ -1020,7 +904,7 @@ let rec contient_arbre_deja_vus arbre chemin =
       )
     | true :: bs -> (
         match node with
-        | Node (_, _, droite) -> aux droite bs
+        | Node (_, _, droit) -> aux droit bs
         | _ -> false
       )
     | false :: bs -> (
@@ -1032,18 +916,6 @@ let rec contient_arbre_deja_vus arbre chemin =
   aux arbre chemin
 ;;
 
-(*
-let () =
-  let arbre_deja_vue= Node(None,Leaf,Leaf) in
-  let arbre_decision1 = Noeud(1, Feuille false, Feuille true) in
-  let bit = [false;true] in
-  let arbre_deja_vue = add_noeud_arbre_deja_vus arbre_deja_vue arbre_decision1 bit in
-  print_arbre_deja_vus arbre_deja_vue;
-  let arbre_decision2 = get_element_arbre_deja_vus arbre_deja_vue bit in
-  print_arbre_decision arbre_decision2;
-  assert(arbre_decision1=arbre_decision2)
-;;
-*)
 
 (*****************************************)
 (*                                       *)
@@ -1051,29 +923,25 @@ let () =
 (*                                       *)
 (*****************************************)
 
+(* regle_M : arbre_decision -> arbre_daja_vus ref -> arbre_decision *)
 let rec regle_M_bis noeud arbre_deja_vue =
   match noeud with 
   | Feuille x -> noeud
-  | Noeud (x, gauche, droite) -> 
+  | Noeud (x, gauche, droit) -> 
       let nouveau_gauche = regle_M_bis gauche arbre_deja_vue in
-      let nouveau_droite = regle_M_bis droite arbre_deja_vue in
+      let nouveau_droit = regle_M_bis droit arbre_deja_vue in
       
       (* Bit correspondant aux fils gauche et droit *)
       let n_gauche = liste_feuilles nouveau_gauche in
-      let n_droite = liste_feuilles nouveau_droite in
+      let n_droit = liste_feuilles nouveau_droit in
       
-      (*
-      Printf.printf "Noeud : %d\n" x;
-      print_bits n_gauche;
-      print_bits n_droite;
-      *)
-
+      (* vérifie si fils gauche et droit sont dans l'arbre déjà vus *)
       let b1 = contient_arbre_deja_vus !arbre_deja_vue n_gauche in
-      let b2 = contient_arbre_deja_vus !arbre_deja_vue n_droite in
+      let b2 = contient_arbre_deja_vus !arbre_deja_vue n_droit in
       
-      if n_gauche = n_droite then
+      if n_gauche = n_droit then
         if b1 then begin
-          (*Printf.printf "gauche=droite, gauche et droite dans la liste\n\n";*)
+          (* fils gauche = fils droit, fils gauche et fils droit dans la liste *)
           let nouveau_pointeur = get_element_arbre_deja_vus !arbre_deja_vue n_gauche in
           if nouveau_gauche = nouveau_pointeur then
             Noeud(x, nouveau_pointeur, nouveau_pointeur)
@@ -1081,46 +949,45 @@ let rec regle_M_bis noeud arbre_deja_vue =
             Noeud(x, nouveau_gauche, nouveau_gauche)
         end
         else begin
-          (*Printf.printf "gauche=droite, gauche et droite pas dans la liste\n\n"; *)
+          (* fils gauche = fils droit, flis gauche et fils droit pas dans la liste *)
           arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_gauche n_gauche;
           Noeud(x, nouveau_gauche, nouveau_gauche)
         end
       else begin
         if b1 && b2 then begin
-          (*Printf.printf "gauche!=droite, gauche et droite dans la liste\n\n";*)
+          (*fils gauche != fils droit, fils gauche et fils droit dans la liste*)
           let nouveau_pointeur_gauche = get_element_arbre_deja_vus !arbre_deja_vue n_gauche in
-          let nouveau_pointeur_droite = get_element_arbre_deja_vus !arbre_deja_vue n_droite in
-          if nouveau_gauche = nouveau_pointeur_gauche && nouveau_droite = nouveau_pointeur_droite then
-            Noeud(x, nouveau_pointeur_gauche, nouveau_pointeur_droite)
+          let nouveau_pointeur_droit = get_element_arbre_deja_vus !arbre_deja_vue n_droit in
+          if nouveau_gauche = nouveau_pointeur_gauche && nouveau_droit = nouveau_pointeur_droit then
+            Noeud(x, nouveau_pointeur_gauche, nouveau_pointeur_droit)
           else if nouveau_gauche = nouveau_pointeur_gauche then
-            Noeud(x, nouveau_pointeur_gauche, nouveau_droite)
+            Noeud(x, nouveau_pointeur_gauche, nouveau_droit)
           else
-            Noeud(x, nouveau_gauche, nouveau_pointeur_droite)
+            Noeud(x, nouveau_gauche, nouveau_pointeur_droit)
         end
         else if b1 then begin
-          (*Printf.printf "gauche!=droite, gauche dans la liste, droite pas dans la liste\n\n";*)
-          
-          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_droite n_droite; 
+          (* fils gauche != fils droit, fils gauche dans la liste, fils droit pas dans la liste *)
+          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_droit n_droit; 
           let nouveau_pointeur = get_element_arbre_deja_vus !arbre_deja_vue n_gauche in
           if nouveau_gauche = nouveau_pointeur then
-            Noeud(x, nouveau_pointeur, nouveau_droite)
+            Noeud(x, nouveau_pointeur, nouveau_droit)
           else
-            Noeud(x, nouveau_gauche, nouveau_droite)
+            Noeud(x, nouveau_gauche, nouveau_droit)
         end
         else if b2 then begin   
-          (*Printf.printf "gauche!=droite, gauche pas dans la liste, droite dans la liste\n\n";*)
+          (*fils gauche != fils droit, fils gauche pas dans la liste, fils droit dans la liste*)
           arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_gauche n_gauche; 
-          let nouveau_pointeur = get_element_arbre_deja_vus !arbre_deja_vue n_droite in
-          if nouveau_droite = nouveau_pointeur then
+          let nouveau_pointeur = get_element_arbre_deja_vus !arbre_deja_vue n_droit in
+          if nouveau_droit = nouveau_pointeur then
             Noeud(x, nouveau_gauche, nouveau_pointeur)
           else
-            Noeud(x, nouveau_gauche, nouveau_droite)
+            Noeud(x, nouveau_gauche, nouveau_droit)
         end
         else begin
-          (*Printf.printf "gauche!=droite, gauche et droite pas dans la liste\n\n";*)
+          (* fils gauche != fils droit, flis gauche et fils droit pas dans la liste *)
           arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_gauche n_gauche;
-          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_droite n_droite;
-          Noeud(x, nouveau_gauche, nouveau_droite)
+          arbre_deja_vue := add_noeud_arbre_deja_vus !arbre_deja_vue nouveau_droit n_droit;
+          Noeud(x, nouveau_gauche, nouveau_droit)
         end
       end
 ;;
@@ -1134,8 +1001,7 @@ let rec regle_M_bis noeud arbre_deja_vue =
 
 (* compression_par_arbre : arbre_decision -> arbre_deja_vus ref -> arbre_decision *)
 let compression_par_arbre arbre arbre_deja_vue =
-  let nouveau_arbre = copier_arbre arbre in 
-  let nouveau_arbre = regle_Z nouveau_arbre in
+  let nouveau_arbre = regle_Z arbre in
   let nouveau_arbre = regle_M_bis nouveau_arbre arbre_deja_vue in
   nouveau_arbre
 ;;
@@ -1161,42 +1027,53 @@ let () =
   *)
 
   let arbre2 = Noeud(1, 
-                    Noeud(2,
-                          Noeud(3,
-                            Noeud(4,Feuille true, Feuille true),
-                            Noeud(4,Feuille false, Feuille true)
-                            ),
-                          Noeud(4,Feuille false, Feuille true)
+                     Noeud(2,
+                           Noeud(3,
+                                 Noeud(4,Feuille true, Feuille true),
+                                 Noeud(4,Feuille false, Feuille true)
+                                ),
+                           Noeud(4,Feuille false, Feuille true)
                           ),
-                    Noeud(2,
-                          Noeud(3,Feuille true, Feuille true),
-                          Noeud(3,
-                            Noeud(4,Feuille false, Feuille true),
-                            Feuille true)
+                     Noeud(2,
+                           Noeud(3,Feuille true, Feuille true),
+                           Noeud(3,
+                                 Noeud(4,Feuille false, Feuille true),
+                                 Feuille true)
                           )
                     )
-in 
-assert(zdd=arbre2);
+  in 
+  assert(zdd=arbre2);
 
 ;;
 
+(*************************************************************)
+(*                                                           *)
+(*                                                           *)
+(*                V.Analyses de complexité                   *)  
+(*                 VI.Etude expérimentale                    *)
+(*                                                           *)
+(*                                                           *)
+(*************************************************************)
+
 (*****************************************)
 (*                                       *)
-(*                 Q19,20,21             *)
+(*               Q19,20,21               *)
 (*                                       *)
 (*****************************************)
 
-    (* Measure the execution time of a function f applied to x *)
+(* Measure the execution time of a function f applied to x *)
 let time f x =
   let start = Unix.gettimeofday () in
   let fx = f x in
   (Unix.gettimeofday () -. start), fx
+;;
 
 (* Calculate the size of a tree to simulate space complexity *)
-let rec taille_arbre (arbre: arbre_decision): int = match arbre with 
+let rec taille_arbre (arbre: arbre_decision): int = 
+  match arbre with 
   | Feuille _ -> 1
   | Noeud (_,g, d) -> 1 + taille_arbre g + taille_arbre d
-
+;;
 
 let genere_et_compresse_arbre_record bits =
   let grand_entier_aleatoire = genere_aleatoire bits in
@@ -1211,18 +1088,18 @@ let genere_et_compresse_arbre_record bits =
   let compression_by_tree_time, compressed_tree = time (compression_par_arbre arbre_genere) arbre_deja_vue_arbre in
   let space_complexity_by_tree = taille_arbre compressed_tree in
   (bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction)
-
+;;
 
 
 let generate_data_points () =
   let rec aux acc bits =
-    if bits > 1024 then acc
+    if bits > 65536 then acc
     else
       let record = genere_et_compresse_arbre_record bits in
       aux (record :: acc) (bits*2) (* Increment by 4 each time *)
   in
   aux [] 1 (* Start from 16 bits *)
-
+;;
 let write_to_csv file_path data =
   let oc = open_out file_path in
   Printf.fprintf oc "bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction\n";
@@ -1231,7 +1108,7 @@ let write_to_csv file_path data =
 
   ) data;
   close_out oc
-
+  ;;
 (* ... 剩下的代码不变 ... *)
 let () =
   Printexc.record_backtrace true; (* Enable stack trace *)
@@ -1246,3 +1123,5 @@ let () =
     Printf.printf "An exception occurred: %s\n" (Printexc.to_string e);
     Printexc.print_backtrace stdout; (* Print the stack trace *)
     exit 1
+  ;;
+    
