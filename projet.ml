@@ -1061,20 +1061,48 @@ let () =
 (*                                       *)
 (*****************************************)
 
+
 (* Measure the execution time of a function f applied to x *)
 let time f x =
   let start = Unix.gettimeofday () in
   let fx = f x in
   (Unix.gettimeofday () -. start), fx
-;;
 
 (* Calculate the size of a tree to simulate space complexity *)
-let rec taille_arbre (arbre: arbre_decision): int = 
-  match arbre with 
+let rec taille_arbre (arbre: arbre_decision): int = match arbre with 
   | Feuille _ -> 1
   | Noeud (_,g, d) -> 1 + taille_arbre g + taille_arbre d
+
+(*
+let rec taille_compression_liste liste_deja_vus =
+  match liste_deja_vus with
+  | [] -> 0
+  | _::reste -> 1 + taille_compression_liste reste
 ;;
 
+
+
+let rec taille_compression_arbre arbre_deja_vus =
+  match arbre_deja_vus with
+  | Leaf -> 0
+  | Node (_, gauche, droit) -> 1 + taille_compression_arbre gauche + taille_compression_arbre droit
+;;
+*)
+let taille_arbre_unique (arbre: arbre_decision) : int =
+  let visited = Hashtbl.create 1024 in
+  let rec aux arbre =
+    match arbre with
+    | Feuille _ -> 1
+    | Noeud (_, g, d) as node ->
+        let node_id = Hashtbl.hash node in
+        if Hashtbl.mem visited node_id then 0
+        else begin
+          Hashtbl.add visited node_id true;
+          1 + aux g + aux d
+        end
+  in aux arbre
+;;
+(*
 let genere_et_compresse_arbre_record bits =
   let grand_entier_aleatoire = genere_aleatoire bits in
   let bits_list = table grand_entier_aleatoire bits in
@@ -1083,23 +1111,40 @@ let genere_et_compresse_arbre_record bits =
   let space_complexity_construction = tree_size in (* 假设生成树的大小就是其空间复杂度 *)
   let arbre_deja_vue_liste = ref [] in
   let compression_by_list_time, compressed_list = time (compression_par_liste arbre_genere) arbre_deja_vue_liste in
-  let space_complexity_by_list = taille_arbre compressed_list in  (* Assuming list is converted to tree for measurement *)
+  let space_complexity_by_list = taille_compression_liste compressed_list in  (* Assuming list is converted to tree for measurement *)
   let arbre_deja_vue_arbre = ref Leaf in
   let compression_by_tree_time, compressed_tree = time (compression_par_arbre arbre_genere) arbre_deja_vue_arbre in
-  let space_complexity_by_tree = taille_arbre compressed_tree in
+  let space_complexity_by_tree = taille_compression_arbre compressed_tree in
   (bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction)
-;;
+*)
+
+let genere_et_compresse_arbre_record bits =
+  let grand_entier_aleatoire = genere_aleatoire bits in
+  let bits_list = table grand_entier_aleatoire bits in
+  let construction_time, arbre_genere = time cons_arbre bits_list in
+  let tree_size = taille_arbre arbre_genere in
+  let space_complexity_construction = tree_size in (* Assuming the size of the generated tree is its space complexity *)
+
+  let arbre_deja_vue_liste = ref [] in
+  let compression_by_list_time, compressed_list = time (compression_par_liste arbre_genere) arbre_deja_vue_liste in
+  let space_complexity_by_list = taille_arbre_unique compressed_list in  (* Assuming list is converted to tree for measurement *)
+  let arbre_deja_vue_arbre = ref Leaf in
+  let compression_by_tree_time, compressed_tree = time (compression_par_arbre arbre_genere) arbre_deja_vue_arbre in
+  let space_complexity_by_tree = taille_arbre_unique compressed_tree in  
+
+  (bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction)
+
 
 
 let generate_data_points () =
   let rec aux acc bits =
-    if bits > 65536 then acc
+    if bits > 1024 then acc
     else
       let record = genere_et_compresse_arbre_record bits in
-      aux (record :: acc) (bits*2) (* Increment by 4 each time *)
+      aux (record :: acc) (bits*2) 
   in
-  aux [] 1 (* Start from 16 bits *)
-;;
+  aux [] 1 
+
 let write_to_csv file_path data =
   let oc = open_out file_path in
   Printf.fprintf oc "bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction\n";
@@ -1108,8 +1153,7 @@ let write_to_csv file_path data =
 
   ) data;
   close_out oc
-  ;;
-(* ... 剩下的代码不变 ... *)
+
 let () =
   Printexc.record_backtrace true; (* Enable stack trace *)
   try
@@ -1123,5 +1167,3 @@ let () =
     Printf.printf "An exception occurred: %s\n" (Printexc.to_string e);
     Printexc.print_backtrace stdout; (* Print the stack trace *)
     exit 1
-  ;;
-    
