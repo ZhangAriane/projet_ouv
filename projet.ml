@@ -310,20 +310,23 @@ let random_int64 () =
 let rec genere_aleatoire n =
   Random.self_init ();
   if n > 64 then begin
-    let head = random_int64 () in
+    let head = Random.int64 Int64.max_int in
     head :: (genere_aleatoire (n - 64))
-  end else
+  end 
+  else if n = 64 || n = 63 then
+    let x = Random.int64 Int64.max_int in
+    [x]
+  else
     let x = Random.int64 (Int64.shift_left 1L n) in
     [x]
 ;;
-
 
 
 let () = 
   for i=0 to 1000 do
     let x = (genere_aleatoire 100) in
     let bits = decomposition x in
-    assert (List.length bits <= 100); 
+    assert (List.length bits <= 100);
     (*
     Printf.printf "grand entier générer aléatoire sur 100bits\n";
     Printf.printf "Bits : %d\n" (List.length bits);
@@ -576,8 +579,10 @@ let rec regle_M noeud liste_deja_vue =
             Noeud(x, nouveau_pointeur_gauche, nouveau_pointeur_droit)
           else if nouveau_gauche = nouveau_pointeur_gauche then
             Noeud(x, nouveau_pointeur_gauche, nouveau_droit)
-          else
+          else if nouveau_droit = nouveau_pointeur_droit then
             Noeud(x, nouveau_gauche, nouveau_pointeur_droit)
+          else
+            Noeud(x,nouveau_gauche,nouveau_droit)
         end
         else if b1 then begin
           (* fils gauche != fils droit, fils gauche dans la liste, fils droit pas dans la liste *)
@@ -962,8 +967,10 @@ let rec regle_M_bis noeud arbre_deja_vue =
             Noeud(x, nouveau_pointeur_gauche, nouveau_pointeur_droit)
           else if nouveau_gauche = nouveau_pointeur_gauche then
             Noeud(x, nouveau_pointeur_gauche, nouveau_droit)
-          else
+          else if nouveau_droit = nouveau_pointeur_droit then
             Noeud(x, nouveau_gauche, nouveau_pointeur_droit)
+          else
+            Noeud(x,nouveau_gauche,nouveau_droit)
         end
         else if b1 then begin
           (* fils gauche != fils droit, fils gauche dans la liste, fils droit pas dans la liste *)
@@ -1048,8 +1055,7 @@ let () =
 
 (*************************************************************)
 (*                                                           *)
-(*                                                           *)
-(*                V.Analyses de complexité                   *)  
+(*                                                           *) 
 (*                 VI.Etude expérimentale                    *)
 (*                                                           *)
 (*                                                           *)
@@ -1057,7 +1063,7 @@ let () =
 
 (*****************************************)
 (*                                       *)
-(*               Q19,20,21               *)
+(*                   Q20                 *)
 (*                                       *)
 (*****************************************)
 
@@ -1073,7 +1079,7 @@ let rec taille_arbre (arbre: arbre_decision): int = match arbre with
   | Feuille _ -> 1
   | Noeud (_,g, d) -> 1 + taille_arbre g + taille_arbre d
 
-(*
+
 let rec taille_compression_liste liste_deja_vus =
   match liste_deja_vus with
   | [] -> 0
@@ -1087,7 +1093,8 @@ let rec taille_compression_arbre arbre_deja_vus =
   | Leaf -> 0
   | Node (_, gauche, droit) -> 1 + taille_compression_arbre gauche + taille_compression_arbre droit
 ;;
-*)
+
+(*
 let taille_arbre_unique (arbre: arbre_decision) : int =
   let visited = Hashtbl.create 1024 in
   let rec aux arbre =
@@ -1102,22 +1109,24 @@ let taille_arbre_unique (arbre: arbre_decision) : int =
         end
   in aux arbre
 ;;
-(*
+*)
 let genere_et_compresse_arbre_record bits =
   let grand_entier_aleatoire = genere_aleatoire bits in
-  let bits_list = table grand_entier_aleatoire bits in
+  (* l'arbre de décision est équilibré, donc les nombres de bits est une puissance de 2 *)
+  let n = arrondi_puissance2_superieur bits in
+  let bits_list = table grand_entier_aleatoire n in
   let construction_time, arbre_genere = time cons_arbre bits_list in
   let tree_size = taille_arbre arbre_genere in
   let space_complexity_construction = tree_size in (* 假设生成树的大小就是其空间复杂度 *)
   let arbre_deja_vue_liste = ref [] in
   let compression_by_list_time, compressed_list = time (compression_par_liste arbre_genere) arbre_deja_vue_liste in
-  let space_complexity_by_list = taille_compression_liste compressed_list in  (* Assuming list is converted to tree for measurement *)
+  let space_complexity_by_list = taille_compression_liste !arbre_deja_vue_liste in  (* Assuming list is converted to tree for measurement *)
   let arbre_deja_vue_arbre = ref Leaf in
   let compression_by_tree_time, compressed_tree = time (compression_par_arbre arbre_genere) arbre_deja_vue_arbre in
-  let space_complexity_by_tree = taille_compression_arbre compressed_tree in
+  let space_complexity_by_tree = taille_compression_arbre !arbre_deja_vue_arbre in
   (bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction)
-*)
 
+(*
 let genere_et_compresse_arbre_record bits =
   let grand_entier_aleatoire = genere_aleatoire bits in
   let bits_list = table grand_entier_aleatoire bits in
@@ -1133,17 +1142,17 @@ let genere_et_compresse_arbre_record bits =
   let space_complexity_by_tree = taille_arbre_unique compressed_tree in  
 
   (bits, tree_size, construction_time, compression_by_list_time, compression_by_tree_time, space_complexity_by_list, space_complexity_by_tree, space_complexity_construction)
-
+*)
 
 
 let generate_data_points () =
   let rec aux acc bits =
-    if bits > 1024 then acc
+    if bits > 1024 then acc (* 2^12 = 4096, 2^13 = 8019, 2^16 = 65536, 2^17 = 131072*)
     else
       let record = genere_et_compresse_arbre_record bits in
-      aux (record :: acc) (bits*2) 
+      aux (record :: acc) (bits+4) 
   in
-  aux [] 1 
+  aux [] 0
 
 let write_to_csv file_path data =
   let oc = open_out file_path in
